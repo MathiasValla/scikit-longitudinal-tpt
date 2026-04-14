@@ -1,0 +1,1007 @@
+% Options for packages loaded elsewhere
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+  letterpaper,
+  DIV=11,
+  numbers=noendperiod]{scrartcl}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+% Make \paragraph and \subparagraph free-standing
+\makeatletter
+\ifx\paragraph\undefined\else
+  \let\oldparagraph\paragraph
+  \renewcommand{\paragraph}{
+    \@ifstar
+      \xxxParagraphStar
+      \xxxParagraphNoStar
+  }
+  \newcommand{\xxxParagraphStar}[1]{\oldparagraph*{#1}\mbox{}}
+  \newcommand{\xxxParagraphNoStar}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+  \let\oldsubparagraph\subparagraph
+  \renewcommand{\subparagraph}{
+    \@ifstar
+      \xxxSubParagraphStar
+      \xxxSubParagraphNoStar
+  }
+  \newcommand{\xxxSubParagraphStar}[1]{\oldsubparagraph*{#1}\mbox{}}
+  \newcommand{\xxxSubParagraphNoStar}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+\makeatother
+
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{241,243,245}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.40,0.45,0.13}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\ExtensionTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.28,0.35,0.67}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.46,0.62}{#1}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.07,0.07,0.07}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+
+
+% definitions for citeproc citations
+\NewDocumentCommand\citeproctext{}{}
+\NewDocumentCommand\citeproc{mm}{%
+  \begingroup\def\citeproctext{#2}\cite{#1}\endgroup}
+\makeatletter
+ % allow citations to break across lines
+ \let\@cite@ofmt\@firstofone
+ % avoid brackets around text for \cite:
+ \def\@biblabel#1{}
+ \def\@cite#1#2{{#1\if@tempswa , #2\fi}}
+\makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newenvironment{CSLReferences}[2] % #1 hanging-indent, #2 entry-spacing
+ {\begin{list}{}{%
+  \setlength{\itemindent}{0pt}
+  \setlength{\leftmargin}{0pt}
+  \setlength{\parsep}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+   \setlength{\leftmargin}{\cslhangindent}
+   \setlength{\itemindent}{-1\cslhangindent}
+  \fi
+  % set entry spacing
+  \setlength{\itemsep}{#2\baselineskip}}}
+ {\end{list}}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{\hfill\break\parbox[t]{\linewidth}{\strut\ignorespaces#1\strut}}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+
+
+
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+
+
+ 
+
+
+\KOMAoption{captions}{tableheading}
+\makeatletter
+\@ifpackageloaded{tcolorbox}{}{\usepackage[skins,breakable]{tcolorbox}}
+\@ifpackageloaded{fontawesome5}{}{\usepackage{fontawesome5}}
+\definecolor{quarto-callout-color}{HTML}{909090}
+\definecolor{quarto-callout-note-color}{HTML}{0758E5}
+\definecolor{quarto-callout-important-color}{HTML}{CC1914}
+\definecolor{quarto-callout-warning-color}{HTML}{EB9113}
+\definecolor{quarto-callout-tip-color}{HTML}{00A047}
+\definecolor{quarto-callout-caution-color}{HTML}{FC5300}
+\definecolor{quarto-callout-color-frame}{HTML}{acacac}
+\definecolor{quarto-callout-note-color-frame}{HTML}{4582ec}
+\definecolor{quarto-callout-important-color-frame}{HTML}{d9534f}
+\definecolor{quarto-callout-warning-color-frame}{HTML}{f0ad4e}
+\definecolor{quarto-callout-tip-color-frame}{HTML}{02b875}
+\definecolor{quarto-callout-caution-color-frame}{HTML}{fd7e14}
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\AtBeginDocument{%
+\ifdefined\contentsname
+  \renewcommand*\contentsname{Table of contents}
+\else
+  \newcommand\contentsname{Table of contents}
+\fi
+\ifdefined\listfigurename
+  \renewcommand*\listfigurename{List of Figures}
+\else
+  \newcommand\listfigurename{List of Figures}
+\fi
+\ifdefined\listtablename
+  \renewcommand*\listtablename{List of Tables}
+\else
+  \newcommand\listtablename{List of Tables}
+\fi
+\ifdefined\figurename
+  \renewcommand*\figurename{Figure}
+\else
+  \newcommand\figurename{Figure}
+\fi
+\ifdefined\tablename
+  \renewcommand*\tablename{Table}
+\else
+  \newcommand\tablename{Table}
+\fi
+}
+\@ifpackageloaded{float}{}{\usepackage{float}}
+\floatstyle{ruled}
+\@ifundefined{c@chapter}{\newfloat{codelisting}{h}{lop}}{\newfloat{codelisting}{h}{lop}[chapter]}
+\floatname{codelisting}{Listing}
+\newcommand*\listoflistings{\listof{codelisting}{List of Listings}}
+\makeatother
+\makeatletter
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
+\makeatother
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Scikit-longitudinal's TpT splitter: growing decision trees along the time dimension of longitudinal data},
+  pdfauthor={Mathias Valla; Simon Provost},
+  pdfkeywords={longitudinal data, decision
+trees, reproducibility, Python, software},
+  colorlinks=true,
+  linkcolor={blue},
+  filecolor={Maroon},
+  citecolor={Blue},
+  urlcolor={Blue},
+  pdfcreator={LaTeX via pandoc}}
+
+
+\title{Scikit-longitudinal's TpT splitter: growing decision trees along
+the time dimension of longitudinal data}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{A short software note for Computo}
+\author{Mathias Valla \and Simon Provost}
+\date{2026-04-14}
+\begin{document}
+\maketitle
+\begin{abstract}
+We present the Time-penalized Trees (TpT) splitter as exposed in
+scikit-longitudinal. TpT extends decision-tree split selection to
+longitudinal settings by penalizing candidate splits that rely on later
+observation waves. This note focuses on software usage and
+reproducibility rather than a full methodological treatment. We document
+the current TpT API in scikit-longitudinal and provide two compact
+real-data examples: a subject-level classification task on the primary
+biliary cirrhosis follow-up data and a subject-level regression task on
+the dietox pig growth data. The accompanying repository contains a
+frozen Python environment, data preparation scripts, and Quarto sources
+for the paper.
+\end{abstract}
+
+
+\section{Introduction}\label{introduction}
+
+\texttt{scikit-longitudinal} extends the \texttt{scikit-learn} ecosystem
+with estimators and workflows tailored to repeated-measures data
+(Provost and Freitas 2025). This software note focuses on the
+Time-penalized Trees (TpT) splitter, a decision-tree split rule designed
+for longitudinal covariates (Valla 2024). Rather than reproducing the
+full methodological development, we document the current TpT API in the
+package and provide two compact, fully reproducible real-data examples.
+Beyond the original algorithmic presentation, TpT has also been shown to
+be a consistent estimator for a non-empty set of observation times
+(Valla and Milhaud 2026).
+
+The repository is structured as required by Computo (Computo Team 2020):
+the paper is written in Quarto, the environment is frozen in
+\texttt{environment.yml}, and the data preparation and analysis code are
+kept alongside the manuscript.
+
+\section{\texorpdfstring{The TpT splitter in
+\texttt{scikit-longitudinal}}{The TpT splitter in scikit-longitudinal}}\label{the-tpt-splitter-in-scikit-longitudinal}
+
+At a tree node associated with parent time index \(t_p\), TpT scores a
+candidate split at time \(t_c\) by multiplying the usual impurity
+improvement \(\Delta I\) by an exponential time penalty:
+
+\[
+G_{\gamma} = \Delta I \exp \left[-\gamma (t_c - t_p)\right].
+\]
+
+The hyperparameter \(\gamma \ge 0\) controls how strongly later
+measurements are penalized. When \(\gamma = 0\), TpT reduces to ordinary
+impurity-based split selection. As \(\gamma\) increases, the tree
+becomes more reluctant to use later waves unless they bring a clearly
+stronger impurity reduction.
+
+From a user perspective, the main entry points are
+\texttt{TpTDecisionTreeClassifier} and
+\texttt{TpTDecisionTreeRegressor}. Both can consume LONG-format data
+directly by specifying an identifier column, an observation-time column
+and a subject-specific duration column.
+
+For this preliminary software note, we select \(\gamma\) on a small
+candidate grid by minimizing the fitted tree's weighted total leaf
+impurity on the training split. This is intentionally simple and should
+be viewed as a placeholder for a more formal tuning strategy in the
+final submission.
+
+{Note to self: a Computo reviewer may reasonably ask for a stronger
+justification of this gamma-selection rule, or for a validation-based
+alternative. Keep the placeholder wording explicit and avoid overselling
+it.}
+
+\begin{tcolorbox}[enhanced jigsaw, titlerule=0mm, rightrule=.15mm, coltitle=black, opacitybacktitle=0.6, leftrule=.75mm, colback=white, bottomtitle=1mm, toptitle=1mm, opacityback=0, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Current scope}, arc=.35mm, breakable, bottomrule=.15mm, toprule=.15mm, left=2mm, colframe=quarto-callout-note-color-frame, colbacktitle=quarto-callout-note-color!10!white]
+
+The present implementation is suitable for compact reproducible examples
+and software-oriented demonstrations. Missing-value routing inside the
+Cython TpT splitter is still treated as future work, and monotonic
+constraints are explicitly disabled for TpT at the wrapper level.
+
+\end{tcolorbox}
+
+\section{Reproducible setup}\label{reproducible-setup}
+
+The repository contains:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{scripts/prepare\_example\_data.py} to download and preprocess
+  the open datasets;
+\item
+  \texttt{analysis/tpt\_examples.py} with helper functions used by the
+  paper;
+\item
+  \texttt{environment.yml} with a frozen Python environment.
+\end{itemize}
+
+The environment currently pins the TpT-enabled forks by GitHub SHA so
+that the examples remain runnable before the upstream releases catch up
+with the merged pull requests.
+
+\section{\texorpdfstring{Example 1: Subject-level classification on
+\texttt{pbcseq}}{Example 1: Subject-level classification on pbcseq}}\label{example-1-subject-level-classification-on-pbcseq}
+
+Our classification example uses \texttt{pbcseq}, the sequential primary
+biliary cirrhosis follow-up data distributed with the \texttt{survival}
+package (Therneau, Terry 2025). We keep four complete longitudinal
+biomarkers (\texttt{bili}, \texttt{albumin}, \texttt{protime},
+\texttt{ast}), use \texttt{day} as the observation-time variable,
+\texttt{futime} as the subject-specific horizon, and define a binary
+target equal to one when the subject experiences either transplantation
+or death by the end of follow-up.
+
+The example is run on a subject-level train/test split, with the
+long-format API of \texttt{TpTDecisionTreeClassifier}. The minimal
+fit/predict workflow is:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{from}\NormalTok{ scikit\_longitudinal.estimators.trees }\ImportTok{import}\NormalTok{ TpTDecisionTreeClassifier}
+
+\NormalTok{feature\_columns }\OperatorTok{=}\NormalTok{ [}\StringTok{"id"}\NormalTok{, }\StringTok{"day"}\NormalTok{, }\StringTok{"futime"}\NormalTok{, }\StringTok{"bili"}\NormalTok{, }\StringTok{"albumin"}\NormalTok{, }\StringTok{"protime"}\NormalTok{, }\StringTok{"ast"}\NormalTok{]}
+
+\NormalTok{clf }\OperatorTok{=}\NormalTok{ TpTDecisionTreeClassifier(}
+\NormalTok{    gamma}\OperatorTok{=}\NormalTok{selected\_gamma,}
+\NormalTok{    max\_depth}\OperatorTok{=}\DecValTok{3}\NormalTok{,}
+\NormalTok{    min\_samples\_leaf}\OperatorTok{=}\DecValTok{10}\NormalTok{,}
+\NormalTok{    random\_state}\OperatorTok{=}\DecValTok{42}\NormalTok{,}
+\NormalTok{    assume\_long\_format}\OperatorTok{=}\VariableTok{True}\NormalTok{,}
+\NormalTok{    id\_col}\OperatorTok{=}\StringTok{"id"}\NormalTok{,}
+\NormalTok{    time\_col}\OperatorTok{=}\StringTok{"day"}\NormalTok{,}
+\NormalTok{    duration\_col}\OperatorTok{=}\StringTok{"futime"}\NormalTok{,}
+\NormalTok{    time\_step}\OperatorTok{=}\FloatTok{365.0}\NormalTok{,}
+\NormalTok{    long\_feature\_columns}\OperatorTok{=}\NormalTok{[}\StringTok{"bili"}\NormalTok{, }\StringTok{"albumin"}\NormalTok{, }\StringTok{"protime"}\NormalTok{, }\StringTok{"ast"}\NormalTok{],}
+\NormalTok{)}
+
+\NormalTok{clf.fit(train\_df[feature\_columns], train\_df[}\StringTok{"event"}\NormalTok{])}
+\NormalTok{pred }\OperatorTok{=}\NormalTok{ clf.predict(test\_df[feature\_columns])}
+\NormalTok{proba }\OperatorTok{=}\NormalTok{ clf.predict\_proba(test\_df[feature\_columns])[:, }\DecValTok{1}\NormalTok{]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ pandas }\ImportTok{as}\NormalTok{ pd}
+
+\ImportTok{from}\NormalTok{ analysis.tpt\_examples }\ImportTok{import}\NormalTok{ run\_classification\_example}
+
+\NormalTok{pbcseq\_example }\OperatorTok{=}\NormalTok{ run\_classification\_example()}
+\NormalTok{pd.DataFrame([pbcseq\_example.metrics]).}\BuiltInTok{round}\NormalTok{(}\DecValTok{3}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+/Users/mathiasvalla/Desktop/Projet_TPT/PR SCIKIT-LONG/.venv/lib/python3.10/site-packages/stopit/__init__.py:10: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+\end{verbatim}
+
+\begin{longtable}[]{@{}lllllllllll@{}}
+
+\caption{\label{tbl-pbcseq-metrics}Subject-level test metrics for the
+pbcseq classification example.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& train\_subjects & test\_subjects & selected\_gamma & accuracy &
+balanced\_accuracy & roc\_auc & tree\_total\_impurity &
+tree\_mean\_impurity & tree\_depth & n\_nodes \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 234 & 78 & 0.2 & 0.846 & 0.865 & 0.912 & 93.675 & 0.207 & 3 & 13 \\
+
+\end{longtable}
+
+We also report the small hyperparameter set used for this preliminary
+example.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pbcseq\_example.hyperparameters}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lll@{}}
+
+\caption{\label{tbl-pbcseq-hyperparameters}Hyperparameter choices for
+the pbcseq classification example.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& parameter & value \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & input\_format & long \\
+1 & criterion & gini \\
+2 & candidate\_gammas & 0.000 to 0.400 by 0.005 \\
+3 & selected\_gamma & 0.2 \\
+4 & max\_depth & 3 \\
+5 & min\_samples\_leaf & 10 \\
+6 & time\_step\_days & 365.0 \\
+7 & selection\_rule & minimize training tree\_total\_impurity on a
+0.0... \\
+
+\end{longtable}
+
+The selected gamma comes from the training-grid search shown in
+Table~\ref{tbl-pbcseq-gamma-search}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pbcseq\_example.gamma\_table.}\BuiltInTok{round}\NormalTok{(}\DecValTok{4}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}llllll@{}}
+
+\caption{\label{tbl-pbcseq-gamma-search}Gamma search for the pbcseq
+classification example. The search uses a 0.005 grid, but the table
+keeps only distinct training tree-total-impurity values and breaks ties
+by retaining the smallest gamma.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& gamma & tree\_total\_impurity & tree\_mean\_impurity & tree\_depth &
+n\_nodes \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 0.000 & 204.5029 & 0.4388 & 3 & 9 \\
+1 & 0.005 & 174.0299 & 0.4095 & 3 & 11 \\
+2 & 0.010 & 221.3713 & 0.4730 & 3 & 11 \\
+3 & 0.015 & 161.7476 & 0.3547 & 3 & 11 \\
+4 & 0.060 & 194.9955 & 0.3645 & 3 & 11 \\
+5 & 0.080 & 153.6755 & 0.2825 & 3 & 11 \\
+6 & 0.115 & 94.5752 & 0.2189 & 3 & 11 \\
+7 & 0.145 & 111.4667 & 0.2488 & 3 & 11 \\
+8 & 0.190 & 228.8063 & 0.3945 & 3 & 13 \\
+9 & 0.195 & 147.1358 & 0.2093 & 3 & 13 \\
+10 & 0.200 & 93.6752 & 0.2068 & 3 & 13 \\
+11 & 0.230 & 122.0084 & 0.2118 & 3 & 11 \\
+12 & 0.255 & 119.3562 & 0.1871 & 3 & 11 \\
+13 & 0.375 & 130.4875 & 0.1977 & 3 & 11 \\
+14 & 0.385 & 132.9564 & 0.2277 & 3 & 13 \\
+15 & 0.390 & 140.2477 & 0.2474 & 3 & 13 \\
+
+\end{longtable}
+
+The resulting subject-level metrics are shown in
+Table~\ref{tbl-pbcseq-metrics}. A small preview of the held-out
+predictions is given in Table~\ref{tbl-pbcseq-predictions}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pbcseq\_example.predictions.head(}\DecValTok{8}\NormalTok{).}\BuiltInTok{round}\NormalTok{(}\DecValTok{3}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lllll@{}}
+
+\caption{\label{tbl-pbcseq-predictions}Preview of held-out subject-level
+predictions for the pbcseq classification example.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& id & observed & predicted & predicted\_probability \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+22 & 78 & 1 & 1 & 1.000 \\
+27 & 105 & 1 & 1 & 1.000 \\
+70 & 278 & 1 & 1 & 1.000 \\
+73 & 292 & 1 & 1 & 1.000 \\
+74 & 293 & 0 & 1 & 1.000 \\
+8 & 26 & 1 & 1 & 0.944 \\
+26 & 94 & 1 & 1 & 0.944 \\
+32 & 117 & 1 & 1 & 0.944 \\
+
+\end{longtable}
+
+The fitted tree is displayed below with the dedicated
+\texttt{plot\_tree} exporter, using the wide feature names built
+internally by the TpT preprocessing step.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{from}\NormalTok{ sklearn }\ImportTok{import}\NormalTok{ tree}
+\ImportTok{import}\NormalTok{ matplotlib.pyplot }\ImportTok{as}\NormalTok{ plt}
+
+\NormalTok{fig, ax }\OperatorTok{=}\NormalTok{ plt.subplots(figsize}\OperatorTok{=}\NormalTok{(}\DecValTok{10}\NormalTok{, }\DecValTok{6}\NormalTok{))}
+\NormalTok{tree.plot\_tree(}
+\NormalTok{    pbcseq\_example.model,}
+\NormalTok{    feature\_names}\OperatorTok{=}\NormalTok{pbcseq\_example.feature\_names,}
+\NormalTok{    filled}\OperatorTok{=}\VariableTok{True}\NormalTok{,}
+\NormalTok{    rounded}\OperatorTok{=}\VariableTok{True}\NormalTok{,}
+\NormalTok{    fontsize}\OperatorTok{=}\DecValTok{9}\NormalTok{,}
+\NormalTok{    tpt\_time\_scale}\OperatorTok{=}\FloatTok{0.5}\NormalTok{,}
+\NormalTok{    ax}\OperatorTok{=}\NormalTok{ax,}
+\NormalTok{)}
+\NormalTok{ax.set\_title(}\SpecialStringTok{f"TpT classification tree (selected gamma = }\SpecialCharTok{\{}\NormalTok{pbcseq\_example}\SpecialCharTok{.}\NormalTok{metrics[}\StringTok{\textquotesingle{}selected\_gamma\textquotesingle{}}\NormalTok{]}\SpecialCharTok{\}}\SpecialStringTok{)"}\NormalTok{)}
+\NormalTok{plt.show()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-latex/fig-pbcseq-tree-output-1.pdf}}
+
+}
+
+\caption{\label{fig-pbcseq-tree}Selected TpT classification tree on
+pbcseq, displayed with the dedicated plot\_tree exporter.}
+
+\end{figure}%
+
+This is precisely the kind of output we want in a software note: the
+fitted tree shows explicitly which wave-specific biomarkers were
+selected by TpT, while the calling interface remains close to ordinary
+\texttt{scikit-learn} usage.
+
+{Note to self: add one short sentence explaining why the selected
+classification tree is clinically plausible, otherwise the figure risks
+feeling purely decorative.}
+
+\section{\texorpdfstring{Example 2: Subject-level regression on
+\texttt{dietox}}{Example 2: Subject-level regression on dietox}}\label{example-2-subject-level-regression-on-dietox}
+
+Our regression example uses \texttt{dietox}, a pig-growth longitudinal
+dataset distributed with \texttt{geepack} (Halekoh, Ulrich and
+Højsgaard, Søren and Yan, Jun 2025). For each pig, we hold out the last
+recorded weight as the response \texttt{final\_weight}, and use the
+earlier repeated weights as the longitudinal covariate history. This
+produces a simple real-data regression task: predict the final observed
+weight of a subject from its earlier growth trajectory.
+
+In this example we explicitly use the TpT conversion helper
+\texttt{long\_to\_wide(...)}, then fit the regressor on the resulting
+wide matrix and its \texttt{feature\_groups} metadata. The minimal
+workflow is:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{from}\NormalTok{ scikit\_longitudinal.estimators.trees }\ImportTok{import}\NormalTok{ TpTDecisionTreeRegressor}
+\ImportTok{from}\NormalTok{ scikit\_longitudinal.estimators.trees.TpT.\_preprocessing }\ImportTok{import}\NormalTok{ long\_to\_wide}
+
+\NormalTok{feature\_columns }\OperatorTok{=}\NormalTok{ [}\StringTok{"Pig"}\NormalTok{, }\StringTok{"Time"}\NormalTok{, }\StringTok{"duration"}\NormalTok{, }\StringTok{"Weight"}\NormalTok{]}
+
+\NormalTok{wide\_train }\OperatorTok{=}\NormalTok{ long\_to\_wide(}
+\NormalTok{    train\_df[feature\_columns],}
+\NormalTok{    id\_col}\OperatorTok{=}\StringTok{"Pig"}\NormalTok{,}
+\NormalTok{    time\_col}\OperatorTok{=}\StringTok{"Time"}\NormalTok{,}
+\NormalTok{    duration\_col}\OperatorTok{=}\StringTok{"duration"}\NormalTok{,}
+\NormalTok{    time\_step}\OperatorTok{=}\FloatTok{1.0}\NormalTok{,}
+\NormalTok{    feature\_columns}\OperatorTok{=}\NormalTok{[}\StringTok{"Weight"}\NormalTok{],}
+\NormalTok{    target}\OperatorTok{=}\NormalTok{train\_df[}\StringTok{"final\_weight"}\NormalTok{],}
+\NormalTok{)}
+
+\NormalTok{reg }\OperatorTok{=}\NormalTok{ TpTDecisionTreeRegressor(}
+\NormalTok{    gamma}\OperatorTok{=}\NormalTok{selected\_gamma,}
+\NormalTok{    criterion}\OperatorTok{=}\StringTok{"squared\_error"}\NormalTok{,}
+\NormalTok{    max\_depth}\OperatorTok{=}\DecValTok{3}\NormalTok{,}
+\NormalTok{    min\_samples\_leaf}\OperatorTok{=}\DecValTok{5}\NormalTok{,}
+\NormalTok{    random\_state}\OperatorTok{=}\DecValTok{42}\NormalTok{,}
+\NormalTok{    features\_group}\OperatorTok{=}\NormalTok{wide\_train.feature\_groups,}
+\NormalTok{)}
+
+\NormalTok{reg.fit(wide\_train.X, wide\_train.y)}
+\NormalTok{pred }\OperatorTok{=}\NormalTok{ reg.predict(wide\_test.X)}
+\end{Highlighting}
+\end{Shaded}
+
+The next two tables show the same training subjects before and after the
+explicit long-to-wide conversion.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{from}\NormalTok{ analysis.tpt\_examples }\ImportTok{import}\NormalTok{ run\_regression\_example}
+
+\NormalTok{dietox\_example }\OperatorTok{=}\NormalTok{ run\_regression\_example()}
+\NormalTok{dietox\_example.long\_preview.}\BuiltInTok{round}\NormalTok{(}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}llllll@{}}
+
+\caption{\label{tbl-dietox-long-preview}Preview of the long-format
+dietox training data.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& Pig & Time & duration & Weight & final\_weight \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 4602 & 1 & 11 & 28.3 & 106.7 \\
+1 & 4602 & 2 & 11 & 30.1 & 106.7 \\
+2 & 4602 & 3 & 11 & 38.3 & 106.7 \\
+3 & 4602 & 4 & 11 & 44.5 & 106.7 \\
+4 & 4602 & 5 & 11 & 51.6 & 106.7 \\
+5 & 4602 & 6 & 11 & 57.6 & 106.7 \\
+6 & 4602 & 7 & 11 & 65.0 & 106.7 \\
+7 & 4602 & 8 & 11 & 73.0 & 106.7 \\
+
+\end{longtable}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dietox\_example.wide\_preview.}\BuiltInTok{round}\NormalTok{(}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lllllll@{}}
+
+\caption{\label{tbl-dietox-wide-preview}Preview of the wide-format
+matrix produced by long\_to\_wide for the dietox example.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& subject\_id & Weight\_t0 & Weight\_t1 & Weight\_t2 & Weight\_t3 &
+final\_weight \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 4602 & 28.3 & 28.3 & 30.1 & 38.3 & 106.7 \\
+1 & 4603 & 27.6 & 27.6 & 30.6 & 38.7 & 105.4 \\
+2 & 4605 & 31.5 & 31.5 & 34.8 & 40.7 & 109.2 \\
+3 & 4645 & 27.7 & 27.7 & 33.6 & 44.0 & 102.3 \\
+4 & 4756 & 17.0 & 17.0 & 19.0 & 23.6 & 89.3 \\
+5 & 4757 & 26.9 & 26.9 & 32.3 & 38.6 & 91.0 \\
+6 & 4813 & 27.3 & 27.3 & 32.4 & 38.3 & 99.8 \\
+7 & 4815 & 24.9 & 24.9 & 29.7 & 33.8 & 102.7 \\
+
+\end{longtable}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pd.DataFrame([dietox\_example.metrics]).}\BuiltInTok{round}\NormalTok{(}\DecValTok{3}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}llllllllll@{}}
+
+\caption{\label{tbl-dietox-metrics}Subject-level test metrics for the
+dietox regression example.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& train\_subjects & test\_subjects & selected\_gamma & mae & r2 &
+tree\_total\_impurity & tree\_mean\_impurity & tree\_depth & n\_nodes \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 54 & 18 & 0.0 & 4.444 & 0.69 & 424.832 & 6.852 & 3 & 13 \\
+
+\end{longtable}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dietox\_example.hyperparameters}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lll@{}}
+
+\caption{\label{tbl-dietox-hyperparameters}Hyperparameter choices for
+the dietox regression example.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& parameter & value \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & input\_format & wide (after explicit long\_to\_wide conversion) \\
+1 & criterion & squared\_error (MSE) \\
+2 & candidate\_gammas & 0.000 to 0.200 by 0.005 \\
+3 & selected\_gamma & 0.0 \\
+4 & max\_depth & 3 \\
+5 & min\_samples\_leaf & 5 \\
+6 & time\_step & 1.0 \\
+7 & selection\_rule & minimize training tree\_total\_impurity on a
+0.0... \\
+
+\end{longtable}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dietox\_example.gamma\_table.}\BuiltInTok{round}\NormalTok{(}\DecValTok{4}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}llllll@{}}
+
+\caption{\label{tbl-dietox-gamma-search}Gamma search for the dietox
+regression example. The search uses a 0.005 grid, but the table keeps
+only distinct training tree-total-impurity values and breaks ties by
+retaining the smallest gamma.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& gamma & tree\_total\_impurity & tree\_mean\_impurity & tree\_depth &
+n\_nodes \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 0.000 & 424.8324 & 6.8521 & 3 & 13 \\
+1 & 0.015 & 481.4917 & 7.7660 & 3 & 11 \\
+2 & 0.075 & 453.6479 & 7.3169 & 3 & 11 \\
+3 & 0.100 & 629.9755 & 10.1609 & 3 & 9 \\
+4 & 0.120 & 708.6757 & 11.4303 & 3 & 9 \\
+
+\end{longtable}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dietox\_example.predictions.head(}\DecValTok{8}\NormalTok{).}\BuiltInTok{round}\NormalTok{(}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lllll@{}}
+
+\caption{\label{tbl-dietox-predictions}Preview of held-out subject-level
+predictions for the dietox regression example.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& Pig & observed & predicted & abs\_error \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+4 & 4760 & 65.8 & 84.42 & 18.62 \\
+6 & 4858 & 107.1 & 92.70 & 14.40 \\
+10 & 5862 & 93.2 & 84.42 & 8.78 \\
+1 & 4641 & 117.0 & 109.16 & 7.84 \\
+13 & 6433 & 115.4 & 109.16 & 6.24 \\
+14 & 6909 & 103.2 & 98.36 & 4.84 \\
+17 & 8192 & 113.0 & 109.16 & 3.84 \\
+8 & 5578 & 105.7 & 109.16 & 3.46 \\
+
+\end{longtable}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ matplotlib.pyplot }\ImportTok{as}\NormalTok{ plt}
+
+\NormalTok{palette }\OperatorTok{=}\NormalTok{ \{}
+    \StringTok{"Baseline history"}\NormalTok{: }\StringTok{"\#1b9e77"}\NormalTok{,}
+    \StringTok{"Mid history"}\NormalTok{: }\StringTok{"\#d95f02"}\NormalTok{,}
+    \StringTok{"Full history"}\NormalTok{: }\StringTok{"\#7570b3"}\NormalTok{,}
+\NormalTok{\}}
+
+\NormalTok{fig, ax }\OperatorTok{=}\NormalTok{ plt.subplots(figsize}\OperatorTok{=}\NormalTok{(}\FloatTok{6.5}\NormalTok{, }\FloatTok{4.5}\NormalTok{))}
+\ControlFlowTok{for}\NormalTok{ stage, frame }\KeywordTok{in}\NormalTok{ dietox\_example.stage\_predictions.groupby(}\StringTok{"stage"}\NormalTok{, sort}\OperatorTok{=}\VariableTok{False}\NormalTok{):}
+\NormalTok{    ax.scatter(}
+\NormalTok{        frame[}\StringTok{"observed"}\NormalTok{],}
+\NormalTok{        frame[}\StringTok{"predicted"}\NormalTok{],}
+\NormalTok{        alpha}\OperatorTok{=}\FloatTok{0.75}\NormalTok{,}
+\NormalTok{        label}\OperatorTok{=}\NormalTok{stage,}
+\NormalTok{        color}\OperatorTok{=}\NormalTok{palette[stage],}
+\NormalTok{    )}
+\NormalTok{limits }\OperatorTok{=}\NormalTok{ [}
+\NormalTok{    dietox\_example.stage\_predictions[[}\StringTok{"observed"}\NormalTok{, }\StringTok{"predicted"}\NormalTok{]].}\BuiltInTok{min}\NormalTok{().}\BuiltInTok{min}\NormalTok{(),}
+\NormalTok{    dietox\_example.stage\_predictions[[}\StringTok{"observed"}\NormalTok{, }\StringTok{"predicted"}\NormalTok{]].}\BuiltInTok{max}\NormalTok{().}\BuiltInTok{max}\NormalTok{(),}
+\NormalTok{]}
+\NormalTok{ax.plot(limits, limits, linestyle}\OperatorTok{=}\StringTok{"{-}{-}"}\NormalTok{, linewidth}\OperatorTok{=}\DecValTok{1}\NormalTok{, color}\OperatorTok{=}\StringTok{"black"}\NormalTok{)}
+\NormalTok{ax.set\_xlabel(}\StringTok{"Observed final weight"}\NormalTok{)}
+\NormalTok{ax.set\_ylabel(}\StringTok{"Predicted final weight"}\NormalTok{)}
+\NormalTok{ax.set\_title(}\StringTok{"TpT regression on dietox"}\NormalTok{)}
+\NormalTok{ax.legend(frameon}\OperatorTok{=}\VariableTok{False}\NormalTok{, loc}\OperatorTok{=}\StringTok{"upper left"}\NormalTok{)}
+\NormalTok{plt.show()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-latex/fig-dietox-predictions-output-1.pdf}}
+
+}
+
+\caption{\label{fig-dietox-predictions}Observed versus predicted final
+pig weights in the dietox regression example, with predictions computed
+from baseline-only, mid-history, and full-history inputs.}
+
+\end{figure}%
+
+The selected regression tree can also be shown directly with the
+dedicated \texttt{plot\_tree} exporter.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fig, ax }\OperatorTok{=}\NormalTok{ plt.subplots(figsize}\OperatorTok{=}\NormalTok{(}\DecValTok{11}\NormalTok{, }\DecValTok{6}\NormalTok{))}
+\NormalTok{tree.plot\_tree(}
+\NormalTok{    dietox\_example.model,}
+\NormalTok{    feature\_names}\OperatorTok{=}\NormalTok{dietox\_example.feature\_names,}
+\NormalTok{    filled}\OperatorTok{=}\VariableTok{True}\NormalTok{,}
+\NormalTok{    rounded}\OperatorTok{=}\VariableTok{True}\NormalTok{,}
+\NormalTok{    fontsize}\OperatorTok{=}\DecValTok{9}\NormalTok{,}
+\NormalTok{    tpt\_time\_scale}\OperatorTok{=}\FloatTok{0.30}\NormalTok{,}
+\NormalTok{    ax}\OperatorTok{=}\NormalTok{ax,}
+\NormalTok{)}
+\NormalTok{ax.set\_title(}\SpecialStringTok{f"TpT regression tree (selected gamma = }\SpecialCharTok{\{}\NormalTok{dietox\_example}\SpecialCharTok{.}\NormalTok{metrics[}\StringTok{\textquotesingle{}selected\_gamma\textquotesingle{}}\NormalTok{]}\SpecialCharTok{\}}\SpecialStringTok{)"}\NormalTok{)}
+\NormalTok{plt.show()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-latex/fig-dietox-tree-output-1.pdf}}
+
+}
+
+\caption{\label{fig-dietox-tree}Selected TpT regression tree on dietox,
+displayed with the dedicated plot\_tree exporter.}
+
+\end{figure}%
+
+{Note to self: the regression example is reproducible and useful for
+software documentation, but a reviewer may ask whether a single-feature
+longitudinal history is too simple for the final note. Keep a richer
+backup dataset in mind.}
+
+{Note to self: the visual style is still functional rather than
+polished. Before submission, improve the figure styling and overall
+visual consistency across the tree plots, scatter plot, and tables.}
+
+\section{Discussion}\label{discussion}
+
+These two examples are intentionally small. Their role is not to provide
+a full benchmarking study, but to document a reproducible and
+inspectable usage path for TpT within \texttt{scikit-longitudinal}.
+Together they illustrate three software-facing points:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  subject-level train/test evaluation can be carried out while keeping
+  the inputs in LONG format, or by explicit conversion to the wide
+  matrix expected by the core TpT splitter;
+\item
+  TpT exposes a familiar \texttt{scikit-learn}-like interface through
+  \texttt{fit}, \texttt{predict}, and \texttt{predict\_proba};
+\item
+  preliminary gamma tuning can be implemented with a compact
+  impurity-based helper before moving to a more formal model-selection
+  strategy;
+\item
+  the learned trees remain readable because the selected splits are tied
+  to explicit wave-indexed feature names.
+\end{enumerate}
+
+Future revisions of this note can stay short while becoming more robust
+by switching the environment from pinned GitHub SHAs to released package
+versions, and by updating the examples once the remaining TpT
+implementation limitations around missing-value routing are resolved.
+
+{Note to self: explicitly state near submission time whether the paper
+is tied to released package versions or to pinned development SHAs,
+because Computo reviewers will care about long-term reproducibility.}
+
+\section{Acknowledgements}\label{acknowledgements}
+
+Work(s) conducted within the Research Chair DIALog under the aegis of
+the Risk Foundation, a joint initiative by Université Paris-Dauphine PSL
+and CNP Assurances.
+
+Placeholder for Simon Provost's acknowledgements.
+
+{Note to self: fill Simon's affiliation and acknowledgements before
+submission, and check whether Computo wants a software-availability or
+funding sentence in a more specific location.}
+
+\section*{References}\label{references}
+\addcontentsline{toc}{section}{References}
+
+{Note to self: complete and clean the bibliography before submission,
+including any missing software, package, and methodological references
+cited in the final text.}
+
+\phantomsection\label{refs}
+\begin{CSLReferences}{1}{0}
+\bibitem[\citeproctext]{ref-computo}
+Computo Team. 2020. {``Computo: Reproducible Computational/Algorithmic
+Contributions in Statistics and Machine Learning.''}
+
+\bibitem[\citeproctext]{ref-dataset-dietox}
+Halekoh, Ulrich and Højsgaard, Søren and Yan, Jun. 2025. {``Dietox:
+Growth Curves of Pigs in a Factorial Experiment.''}
+\url{https://vincentarelbundock.github.io/Rdatasets/doc/geepack/dietox.html}.
+
+\bibitem[\citeproctext]{ref-provost2025sklong}
+Provost, Simon, and Alex Freitas. 2025. {``Scikit-Longitudinal: A
+Machine Learning Library for Longitudinal Classification in Python.''}
+\emph{Journal of Open Source Software} 10 (112): 8481.
+\url{https://doi.org/10.21105/joss.08481}.
+
+\bibitem[\citeproctext]{ref-dataset-pbcseq}
+Therneau, Terry. 2025. {``Pbcseq: Mayo Clinic Primary Biliary Cirrhosis
+Sequential Data.''} \url{https://rdrr.io/cran/survival/man/pbcseq.html}.
+
+\bibitem[\citeproctext]{ref-valla2024tpt}
+Valla, Mathias. 2024. {``Time-Penalized Trees ({TpT}): Introducing a New
+Tree-Based Data Mining Algorithm for Time-Varying Covariates.''}
+\emph{Annals of Mathematics and Artificial Intelligence} 92: 1609--61.
+\url{https://doi.org/10.1007/s10472-024-09950-w}.
+
+\bibitem[\citeproctext]{ref-valla2026consistency}
+Valla, Mathias, and Xavier Milhaud. 2026. {``Consistent Time-Aware Trees
+for Longitudinal Data: The Time-Penalized Tree.''}
+\url{https://cnrs.hal.science/hal-05022929}.
+
+\end{CSLReferences}
+
+
+
+
+\end{document}
