@@ -1,41 +1,43 @@
 project:
   type: default
   render:
-    - template-computo-python.qmd
+    - paper.qmd
     - README.qmd
 
-title: "Template for contribution to Computo"
-subtitle: "Example dedicated to `Python` users"
+title: "Scikit-longitudinal's TpT splitter: growing decision trees along the time dimension of longitudinal data"
+subtitle: "A short software note for Computo"
 author:
-  - name: Jane Doe
+  - name: Mathias Valla
     corresponding: true
-    email: janedoe@nowhere.moon
-    url: https://janedoe.someplace.themoon.org
-    orcid: 0000-0000-0000-0000
+    email: 65603104+MathiasValla@users.noreply.github.com
     affiliations:
-      - name: Name of Affiliation one
-        department: Statistics
-        url: https://someplace.themoon.org
-  - name: John Doe
-    email: johndoe@nowhere.moon
-    url: https://johndoe.someplace.themoon.org
-    orcid: 0000-0000-0000-0000
+      - name: Chaire DIALog, Institut Louis Bachelier, Paris, France
+  - name: Simon Provost
+    email: simon.gilbert.provost@gmail.com
     affiliations:
-      - name: Name of Affiliation two
-        department: Computer Science
-        url: https://someplace.themoon.org
+      - name: ""
 date: last-modified
 date-modified: last-modified
 description: |
-  Template for preparing a submission to Computo, using the [quarto journal extension](https://github.com/computorg/computo-quarto-extension), the Jupyter kernel (Python user) and the environment files to set-up the dependencies.
-
-  For a detailed, step-by-step guide on preparing your article, setting up the continuous integration and submitting it to Computo, please consult the [guidelines for authors](https://computo-journal.org/site/guidelines-authors.html).
+  A short reproducible software note presenting the Time-penalized Trees (TpT)
+  splitter in scikit-longitudinal, with one classification example on the
+  primary biliary cirrhosis longitudinal dataset and one regression example on
+  the dietox pig growth dataset.
 abstract: >+
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur posuere vestibulum facilisis. Aenean pretium orci augue, quis lobortis libero accumsan eu. Nam mollis lorem sit amet pellentesque ullamcorper. Curabitur lobortis libero eget malesuada vestibulum. Nam nec nibh massa. Pellentesque porttitor cursus tellus. Mauris urna erat, rhoncus sed faucibus sit amet, venenatis eu ipsum.
-keywords: [key1, key2, key3]
+  We present the Time-penalized Trees (TpT) splitter as exposed in
+  scikit-longitudinal. TpT extends decision-tree split selection to longitudinal
+  settings by penalizing candidate splits that rely on later observation waves.
+  This note focuses on software usage and reproducibility rather than a full
+  methodological treatment. We document the current TpT API in
+  scikit-longitudinal and provide two compact real-data examples: a
+  subject-level classification task on the primary biliary cirrhosis follow-up
+  data and a subject-level regression task on the dietox pig growth data. The
+  accompanying repository contains a frozen Python environment, data preparation
+  scripts, and Quarto sources for the paper.
+keywords: [longitudinal data, decision trees, reproducibility, Python, software]
 bibliography: references.bib
-github-user: computorg
-repo: "template-computo-r"
+github-user: MathiasValla
+repo: "scikit-longitudinal-tpt"
 draft: true # set to false once the build is running
 published: false # will be set to true once accepted
 license: CC-BY-4.0

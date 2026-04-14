@@ -1,7 +1,16 @@
-name: template-python
+name: scikit-longitudinal-tpt
 channels:
   - conda-forge
 dependencies:
+  - python=3.11
+  - pip
   - jupyter
   - matplotlib
   - numpy
+  - pandas
+  - scipy
+  - pip:
+      # Replace these temporary GitHub SHAs with released package versions once
+      # the TpT pull requests are merged upstream.
+      - git+https://github.com/MathiasValla/scikit-lexicographical-trees.git@425b13bbc
+      - git+https://github.com/MathiasValla/scikit-longitudinal.git@4dbb600

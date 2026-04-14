@@ -15,6 +15,9 @@ _environment
 /.micromamba/
 /.joblib
 /.pytest_cache/
+/.quarto-env/
+__pycache__/
+*.pyc
 
 # Quarto tmp files
 /.quarto/
@@ -25,9 +28,8 @@ _site/
 /cache/
 
 # Quarto extension files
-_extensions/
-logo_text_white.pdf
-logo_notext_white.png
+/logo_text_white.pdf
+/logo_notext_white.png
 
 # Quarto output files
 template-computo-R.html
@@ -36,6 +38,10 @@ template-computo-python.html
 template-computo-python.pdf
 template-computo-python.ipynb
 template-computo-python.tex
+paper.html
+paper.pdf
+paper.ipynb
+paper.tex
 template-computo-julia.html
 template-computo-julia.pdf
 template-computo-julia.tex
@@ -49,3 +55,4 @@ template-computo-julia.tex
 DS_Store
 /.luarc.json
 
+**/*.quarto_ipynb
