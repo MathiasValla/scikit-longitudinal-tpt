@@ -11,16 +11,17 @@ This repository uses two small public longitudinal datasets.
     - create a binary subject-level outcome `event = 1(status != 0)`
     - sort by subject id and follow-up day
 
-- `dietox_regression_long.csv`
-  - Source dataset: `dietox` from the `geepack` R package.
+- `produc_regression_long.csv`
+  - Source dataset: `Produc` from the `plm` R package.
   - Public source used for regeneration:
-    `https://vincentarelbundock.github.io/Rdatasets/csv/geepack/dietox.csv`
+    `https://vincentarelbundock.github.io/Rdatasets/csv/plm/Produc.csv`
   - Processing:
-    - keep `Pig`, `Time`, `Weight`
-    - define `final_weight` as the last recorded weight for each pig
-    - remove the final visit from the longitudinal covariate history
-    - define `duration` as the last remaining observation time
-    - sort by pig id and observation time
+    - keep `state`, `year`, `pcap`, `pc`, `emp`, `unemp`, `gsp`
+    - define `final_gsp` as the last recorded gross state product for each state
+    - remove the final year from the longitudinal covariate history
+    - define `time_index` as `year - 1970`
+    - define `duration` as the last remaining observed wave index
+    - sort by state and wave index
 
 The processed files can be regenerated with:
 

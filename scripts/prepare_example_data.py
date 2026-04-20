@@ -8,7 +8,7 @@ import pandas as pd
 
 
 PBCSEQ_URL = "https://vincentarelbundock.github.io/Rdatasets/csv/survival/pbcseq.csv"
-DIETOX_URL = "https://vincentarelbundock.github.io/Rdatasets/csv/geepack/dietox.csv"
+PRODUC_URL = "https://vincentarelbundock.github.io/Rdatasets/csv/plm/Produc.csv"
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
@@ -43,19 +43,22 @@ def prepare_pbcseq() -> pd.DataFrame:
     return processed
 
 
-def prepare_dietox() -> pd.DataFrame:
-    """Prepare the subject-level regression dataset from dietox."""
+def prepare_produc() -> pd.DataFrame:
+    """Prepare the state-level regression dataset from Produc."""
 
-    raw = _download_if_missing(DIETOX_URL, RAW_DIR / "dietox.csv")
-    processed = raw[["Pig", "Time", "Weight"]].copy()
-    last_time = processed.groupby("Pig")["Time"].transform("max")
-    processed["final_weight"] = processed.groupby("Pig")["Weight"].transform("last")
-    processed = processed[processed["Time"] < last_time].copy()
-    processed["duration"] = processed.groupby("Pig")["Time"].transform("max")
-    processed = processed.sort_values(["Pig", "Time"], kind="mergesort").reset_index(
+    raw = _download_if_missing(PRODUC_URL, RAW_DIR / "produc.csv")
+    base_year = int(raw["year"].min())
+
+    processed = raw[["state", "year", "pcap", "pc", "emp", "unemp", "gsp"]].copy()
+    last_year = processed.groupby("state")["year"].transform("max")
+    processed["final_gsp"] = processed.groupby("state")["gsp"].transform("last")
+    processed = processed[processed["year"] < last_year].copy()
+    processed["time_index"] = processed["year"] - base_year
+    processed["duration"] = processed.groupby("state")["time_index"].transform("max")
+    processed = processed.sort_values(["state", "time_index"], kind="mergesort").reset_index(
         drop=True
     )
-    processed.to_csv(PROCESSED_DIR / "dietox_regression_long.csv", index=False)
+    processed.to_csv(PROCESSED_DIR / "produc_regression_long.csv", index=False)
     return processed
 
 
@@ -66,7 +69,7 @@ def main() -> None:
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     pbcseq = prepare_pbcseq()
-    dietox = prepare_dietox()
+    produc = prepare_produc()
 
     print(
         "Prepared pbcseq classification data:",
@@ -77,11 +80,12 @@ def main() -> None:
         },
     )
     print(
-        "Prepared dietox regression data:",
+        "Prepared Produc regression data:",
         {
-            "rows": int(dietox.shape[0]),
-            "subjects": int(dietox["Pig"].nunique()),
-            "max_time": int(dietox["Time"].max()),
+            "rows": int(produc.shape[0]),
+            "states": int(produc["state"].nunique()),
+            "max_time_index": int(produc["time_index"].max()),
+            "predictors": ["pcap", "pc", "emp", "unemp"],
         },
     )
 

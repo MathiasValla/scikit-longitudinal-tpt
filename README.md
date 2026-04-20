@@ -1,12 +1,12 @@
 # Scikit-longitudinal’s TpT splitter: growing decision trees along the
 time dimension of longitudinal data
 Mathias Valla, Simon Provost
-2026-04-13
+2026-04-20
 
 *A short reproducible software note presenting the Time-penalized Trees
 (TpT) splitter in scikit-longitudinal, with one classification example
 on the primary biliary cirrhosis longitudinal dataset and one regression
-example on the dietox pig growth dataset.*
+example on the Produc US state production panel.*
 
 [![build and
 publish](https://github.com/MathiasValla/scikit-longitudinal-tpt/actions/workflows/build.yml/badge.svg)](https://github.com/MathiasValla/scikit-longitudinal-tpt/actions/workflows/build.yml)
@@ -32,8 +32,8 @@ observation waves. This note focuses on software usage and
 reproducibility rather than a full methodological treatment. We document
 the current TpT API in scikit-longitudinal and provide two compact
 real-data examples: a subject-level classification task on the primary
-biliary cirrhosis follow-up data and a subject-level regression task on
-the dietox pig growth data. The accompanying repository contains a
+biliary cirrhosis follow-up data and a state-level regression task on
+the Produc panel data. The accompanying repository contains a
 frozen Python environment, data preparation scripts, and Quarto sources
 for the paper.
 

@@ -29,10 +29,10 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data" / "processed"
 
 PBCSEQ_PATH = DATA_DIR / "pbcseq_classification_long.csv"
-DIETOX_PATH = DATA_DIR / "dietox_regression_long.csv"
+PRODUC_PATH = DATA_DIR / "produc_regression_long.csv"
 
 PBCSEQ_FEATURES = ["bili", "albumin", "protime", "ast"]
-DIETOX_FEATURES = ["Weight"]
+PRODUC_FEATURES = ["pc", "emp", "unemp"]
 
 
 def gamma_grid(max_gamma: float, step: float = 0.005) -> tuple[float, ...]:
@@ -42,8 +42,8 @@ def gamma_grid(max_gamma: float, step: float = 0.005) -> tuple[float, ...]:
     return tuple(round(step * idx, 6) for idx in range(n_steps + 1))
 
 
-DEFAULT_CLASSIFICATION_GAMMAS = gamma_grid(0.4, step=0.005)
-DEFAULT_REGRESSION_GAMMAS = gamma_grid(0.2, step=0.005)
+DEFAULT_CLASSIFICATION_GAMMAS = gamma_grid(0.4, step=0.001)
+DEFAULT_REGRESSION_GAMMAS = gamma_grid(0.1, step=0.001)
 
 
 @dataclass
@@ -68,10 +68,45 @@ def load_pbcseq_classification_data() -> pd.DataFrame:
     return pd.read_csv(PBCSEQ_PATH)
 
 
-def load_dietox_regression_data() -> pd.DataFrame:
-    """Load the processed dietox regression dataset."""
+def load_produc_regression_data() -> pd.DataFrame:
+    """Load the processed Produc regression dataset."""
 
-    return pd.read_csv(DIETOX_PATH)
+    return pd.read_csv(PRODUC_PATH)
+
+
+def dataset_summary_table() -> pd.DataFrame:
+    """Return a compact summary of the datasets used in the manuscript."""
+
+    pbcseq = load_pbcseq_classification_data()
+    pbc_visits = pbcseq.groupby("id").size()
+
+    produc = load_produc_regression_data()
+    produc_waves = produc.groupby("state")["time_index"].nunique()
+
+    return pd.DataFrame(
+        [
+            {
+                "dataset": "pbcseq",
+                "observational_unit": f"{pbcseq['id'].nunique()} subjects",
+                "temporal_structure": (
+                    f"{len(pbcseq)} visits total; median {int(pbc_visits.median())} "
+                    f"visits per subject; max {int(pbc_visits.max())}"
+                ),
+                "predictors_used": ", ".join(PBCSEQ_FEATURES),
+                "target": "binary event by end of follow-up",
+            },
+            {
+                "dataset": "Produc",
+                "observational_unit": f"{produc['state'].nunique()} states",
+                "temporal_structure": (
+                    f"{int(produc_waves.iloc[0]) + 1} yearly waves in source data; "
+                    f"{int(produc_waves.iloc[0])} history waves after the final-year holdout"
+                ),
+                "predictors_used": ", ".join(PRODUC_FEATURES),
+                "target": "final-year gross state product (final_gsp)",
+            },
+        ]
+    )
 
 
 def summarize_tpt_tree(tree_) -> dict[str, float]:
@@ -304,12 +339,12 @@ def run_classification_example(
         {
             "input_format": "long",
             "criterion": "gini",
-            "candidate_gammas": f"{gamma_grid[0]:.3f} to {gamma_grid[-1]:.3f} by 0.005",
+            "candidate_gammas": f"{gamma_grid[0]:.3f} to {gamma_grid[-1]:.3f} by 0.001",
             "selected_gamma": best_gamma,
             "max_depth": 3,
             "min_samples_leaf": 10,
             "time_step_days": 365.0,
-            "selection_rule": "minimize training tree_total_impurity on a 0.005 grid",
+            "selection_rule": "minimize training tree_total_impurity on a 0.001 grid",
         }
     )
 
@@ -331,62 +366,95 @@ def run_regression_example(
     gamma_grid: tuple[float, ...] = DEFAULT_REGRESSION_GAMMAS,
     test_size: float = 0.25,
     random_state: int = 42,
+    max_depth: int = 4,
+    min_samples_leaf: int = 1,
+    min_samples_split: int = 2,
 ) -> ExampleResult:
-    """Fit and evaluate the dietox regression example."""
+    """Fit and evaluate the Produc regression example."""
 
-    df = load_dietox_regression_data()
+    df = load_produc_regression_data()
     splitter = GroupShuffleSplit(
         n_splits=1,
         test_size=test_size,
         random_state=random_state,
     )
-    train_idx, test_idx = next(splitter.split(df, groups=df["Pig"]))
+    train_idx, test_idx = next(splitter.split(df, groups=df["state"]))
     train_df = df.iloc[train_idx].copy().reset_index(drop=True)
     test_df = df.iloc[test_idx].copy().reset_index(drop=True)
 
-    long_columns = ["Pig", "Time", "duration", *DIETOX_FEATURES]
+    long_columns = ["state", "time_index", "duration", *PRODUC_FEATURES]
 
     wide_train = long_to_wide(
         train_df[long_columns],
-        id_col="Pig",
-        time_col="Time",
+        id_col="state",
+        time_col="time_index",
         duration_col="duration",
         time_step=1.0,
-        feature_columns=DIETOX_FEATURES,
-        target=train_df["final_weight"],
+        feature_columns=PRODUC_FEATURES,
+        target=train_df["final_gsp"],
     )
     wide_test = long_to_wide(
         test_df[long_columns],
-        id_col="Pig",
-        time_col="Time",
+        id_col="state",
+        time_col="time_index",
         duration_col="duration",
         time_step=1.0,
-        feature_columns=DIETOX_FEATURES,
-        target=test_df["final_weight"],
+        feature_columns=PRODUC_FEATURES,
+        target=test_df["final_gsp"],
     )
 
     X_train = pd.DataFrame(wide_train.X, columns=wide_train.feature_names)
     X_test = pd.DataFrame(wide_test.X, columns=wide_test.feature_names)
-    y_train = pd.Series(wide_train.y, index=wide_train.subject_ids, name="final_weight")
+    y_train = pd.Series(wide_train.y, index=wide_train.subject_ids, name="final_gsp")
     y_test = pd.Series(wide_test.y, index=wide_test.subject_ids, name="observed")
 
-    def build_estimator(gamma: float) -> TpTDecisionTreeRegressor:
-        return TpTDecisionTreeRegressor(
-            gamma=gamma,
+    fitted_models: dict[float, TpTDecisionTreeRegressor] = {}
+    gamma_records: list[dict[str, Any]] = []
+    feature_names = list(wide_train.feature_names)
+
+    for gamma in gamma_grid:
+        estimator = TpTDecisionTreeRegressor(
+            gamma=float(gamma),
             criterion="squared_error",
-            max_depth=3,
-            min_samples_leaf=5,
+            max_depth=max_depth,
+            min_samples_leaf=min_samples_leaf,
+            min_samples_split=min_samples_split,
             random_state=random_state,
             features_group=wide_train.feature_groups,
         )
+        estimator.fit(X_train, y_train.to_numpy())
+        fitted_models[float(gamma)] = estimator
 
-    best_gamma, estimator, gamma_table = select_gamma_by_tree_total_impurity(
-        gamma_grid,
-        build_estimator,
-        X_train,
-        y_train.to_numpy(),
+        tree_stats = summarize_tpt_tree(estimator.tree_)
+        split_features = np.asarray(estimator.tree_.feature)
+        split_mask = split_features >= 0
+        split_times = np.asarray(estimator.tree_.split_time_index)[split_mask].tolist()
+        selected_features = [feature_names[index] for index in split_features[split_mask]]
+
+        gamma_records.append(
+            {
+                "gamma": float(gamma),
+                "tree_total_impurity": tree_stats["tree_total_impurity"],
+                "tree_mean_impurity": tree_stats["tree_mean_impurity"],
+                "root_feature": selected_features[0] if selected_features else "leaf",
+                "root_time": split_times[0] if split_times else np.nan,
+                "min_split_time": min(split_times) if split_times else np.nan,
+                "max_split_time": max(split_times) if split_times else np.nan,
+                "tree_depth": tree_stats["tree_depth"],
+                "n_nodes": tree_stats["n_nodes"],
+            }
+        )
+
+    gamma_table = pd.DataFrame(gamma_records).sort_values("gamma", kind="mergesort").reset_index(drop=True)
+    best_row = (
+        gamma_table.sort_values(
+            ["tree_total_impurity", "tree_mean_impurity", "gamma"],
+            kind="mergesort",
+        )
+        .iloc[0]
     )
-    gamma_table = deduplicate_gamma_table(gamma_table)
+    best_gamma = float(best_row["gamma"])
+    estimator = fitted_models[best_gamma]
 
     pred = pd.Series(
         estimator.predict(X_test),
@@ -409,13 +477,12 @@ def run_regression_example(
 
     predictions = (
         pd.concat([y_test, pred], axis=1)
-        .rename_axis("Pig")
+        .rename_axis("state")
         .reset_index()
         .assign(abs_error=lambda frame: (frame["observed"] - frame["predicted"]).abs())
         .sort_values("abs_error", ascending=False, kind="mergesort")
     )
 
-    feature_names = list(wide_train.feature_names)
     tree_text = export_text(
         estimator,
         feature_names=feature_names,
@@ -423,9 +490,19 @@ def run_regression_example(
         max_depth=3,
     )
 
+    preview_columns = [
+        "subject_id",
+        "pc_t0",
+        "pc_t5",
+        "pc_t15",
+        "emp_t0",
+        "emp_t5",
+        "unemp_t5",
+        "final_gsp",
+    ]
     wide_preview = (
-        X_train.assign(subject_id=wide_train.subject_ids, final_weight=y_train.to_numpy())
-        .loc[:, ["subject_id", "Weight_t0", "Weight_t1", "Weight_t2", "Weight_t3", "final_weight"]]
+        X_train.assign(subject_id=wide_train.subject_ids, final_gsp=y_train.to_numpy())
+        .loc[:, preview_columns]
         .head(8)
         .reset_index(drop=True)
     )
@@ -434,12 +511,15 @@ def run_regression_example(
         {
             "input_format": "wide (after explicit long_to_wide conversion)",
             "criterion": "squared_error (MSE)",
-            "candidate_gammas": f"{gamma_grid[0]:.3f} to {gamma_grid[-1]:.3f} by 0.005",
+            "candidate_gammas": f"{gamma_grid[0]:.3f} to {gamma_grid[-1]:.3f} by 0.001",
             "selected_gamma": best_gamma,
-            "max_depth": 3,
-            "min_samples_leaf": 5,
-            "time_step": 1.0,
-            "selection_rule": "minimize training tree_total_impurity on a 0.005 grid",
+            "max_depth": max_depth,
+            "min_samples_leaf": min_samples_leaf,
+            "min_samples_split": min_samples_split,
+            "time_step_years": 1.0,
+            "longitudinal_predictors": ", ".join(PRODUC_FEATURES),
+            "target": "final_gsp at the held-out final year",
+            "selection_rule": "minimize training tree_total_impurity on a 0.001 grid",
         }
     )
 
@@ -451,7 +531,11 @@ def run_regression_example(
         feature_names=feature_names,
         gamma_table=gamma_table,
         hyperparameters=params,
-        long_preview=train_df[long_columns + ["final_weight"]].head(8).reset_index(drop=True),
+        long_preview=(
+            train_df[["state", "year", "time_index", "duration", *PRODUC_FEATURES, "final_gsp"]]
+            .head(8)
+            .reset_index(drop=True)
+        ),
         wide_preview=wide_preview,
         stage_predictions=stagewise_history_predictions(estimator, X_test, y_test),
     )

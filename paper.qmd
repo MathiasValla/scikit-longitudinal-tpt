@@ -65,6 +65,164 @@ The environment currently pins the TpT-enabled forks by GitHub SHA so that the
 examples remain runnable before the upstream releases catch up with the merged
 pull requests.
 
+```{python}
+#| echo: false
+import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib.ticker import FuncFormatter
+
+PAPER_COLORS = {
+    "ink": "#20323f",
+    "teal": "#0f766e",
+    "gold": "#b7791f",
+    "coral": "#c05621",
+    "plum": "#7c3a6b",
+    "grid": "#d7dce2",
+    "panel": "#fbfaf7",
+}
+
+plt.rcParams.update(
+    {
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.edgecolor": PAPER_COLORS["ink"],
+        "axes.labelcolor": PAPER_COLORS["ink"],
+        "axes.titlecolor": PAPER_COLORS["ink"],
+        "axes.facecolor": PAPER_COLORS["panel"],
+        "figure.facecolor": "white",
+        "grid.color": PAPER_COLORS["grid"],
+        "grid.alpha": 0.8,
+        "axes.grid": True,
+        "axes.axisbelow": True,
+        "font.size": 10,
+    }
+)
+
+thousands_formatter = FuncFormatter(lambda value, _: f"{value / 1000:.0f}k")
+billion_formatter = FuncFormatter(lambda value, _: f"{value / 1e9:.1f}B")
+```
+
+# Install, quick start, and main parameters
+
+The official `scikit-longitudinal` getting-started guide is intentionally
+lightweight, and the same philosophy fits this note well. For a standard Python
+environment, the minimal installation is:
+
+```bash
+pip install scikit-longitudinal
+```
+
+For LONG-format data, the shortest end-to-end TpT workflow is to pass a subject
+identifier, an observation-time column, a subject-level duration column, and the
+names of the longitudinal predictors:
+
+```{python}
+#| eval: false
+from scikit_longitudinal.estimators.trees import TpTDecisionTreeClassifier
+
+tpt = TpTDecisionTreeClassifier(
+    gamma=0.01,
+    max_depth=3,
+    min_samples_leaf=10,
+    assume_long_format=True,
+    id_col="id",
+    time_col="time",
+    duration_col="duration",
+    time_step=1.0,
+    long_feature_columns=["marker_a", "marker_b"],
+)
+
+tpt.fit(X_long, y_subject)
+pred = tpt.predict(X_long_test)
+```
+
+The small set of parameters that matters most in practice is summarized in
+@tbl-tpt-main-parameters.
+
+```{python}
+#| label: tbl-tpt-main-parameters
+#| tbl-cap: "Minimal set of TpT parameters most relevant for the examples in this note."
+#| tbl-colwidths: [26, 74]
+pd.DataFrame(
+    [
+        {
+            "parameter": "gamma",
+            "role": "Strength of the exponential time penalty. `gamma = 0` removes the penalty; larger values favour earlier waves.",
+        },
+        {
+            "parameter": "max_depth, min_samples_leaf",
+            "role": "Standard tree-regularization parameters controlling size and stability of the fitted tree.",
+        },
+        {
+            "parameter": "assume_long_format",
+            "role": "If `True`, TpT converts a LONG-format dataframe to the wide matrix required by the underlying splitter.",
+        },
+        {
+            "parameter": "id_col, time_col, duration_col",
+            "role": "Structural columns needed for the LONG-format interface.",
+        },
+        {
+            "parameter": "time_step",
+            "role": "Granularity used to discretize time into wave indices before fitting.",
+        },
+        {
+            "parameter": "long_feature_columns",
+            "role": "Repeated-measures covariates to keep when using the LONG-format wrapper API.",
+        },
+        {
+            "parameter": "features_group",
+            "role": "Temporal grouping of wave-expanded columns; this is required when fitting on an explicit wide matrix rather than through the LONG-format wrapper.",
+        },
+    ]
+)
+```
+
+When the data are already stored in wave-separated columns, or when TpT is used
+inside a broader `scikit-longitudinal` workflow, the package documentation
+recommends the same building blocks as the rest of the library: a
+`LongitudinalPipeline`, a time-aware preprocessing step such as
+`MerWavTimePlus`, and a final estimator. A minimal pipeline skeleton is:
+
+```{python}
+#| eval: false
+from scikit_longitudinal.data_preparation import MerWavTimePlus
+from scikit_longitudinal.estimators.trees import TpTDecisionTreeClassifier
+from scikit_longitudinal.pipeline import LongitudinalPipeline
+
+pipeline = LongitudinalPipeline(
+    steps=[
+        ("merwav", MerWavTimePlus()),
+        ("tpt", TpTDecisionTreeClassifier(gamma=0.01, features_group=feature_groups)),
+    ],
+    features_group=feature_groups,
+    non_longitudinal_features=non_longitudinal_features,
+    feature_list_names=feature_names,
+    update_feature_groups_callback="default",
+)
+```
+
+This note keeps the examples at the estimator level, but the API is compatible
+with these larger package workflows.
+
+# Data sets
+
+The two examples use small public repeated-measures datasets with complementary
+temporal structures, summarized in @tbl-dataset-summary. We cite
+`scikit-longitudinal` through its JOSS software paper [@provost2025sklong].
+The `pbcseq` data contain follow-up laboratory measurements for the randomized
+Mayo Clinic primary biliary cirrhosis trial, with visits planned at 6 months,
+1 year, and yearly thereafter [@dataset-pbcseq]. The `Produc` data form a
+balanced annual panel of 48 US states from 1970 to 1986 [@dataset-produc].
+
+```{python}
+#| label: tbl-dataset-summary
+#| tbl-cap: "Compact summary of the two public datasets used in the paper."
+#| tbl-colwidths: [12, 16, 26, 26, 20]
+from analysis.tpt_examples import dataset_summary_table
+
+dataset_summary_table()
+```
+
 # Example 1: Subject-level classification on `pbcseq`
 
 Our classification example uses `pbcseq`, the sequential primary biliary
@@ -73,7 +231,9 @@ cirrhosis follow-up data distributed with the `survival` package
 `albumin`, `protime`, `ast`), use `day` as the observation-time variable,
 `futime` as the subject-specific horizon, and define a binary target equal to
 one when the subject experiences either transplantation or death by the end of
-follow-up.
+follow-up. In the processed version used here, this yields 312 subjects,
+1,945 recorded visits, and a median of 5 visits per subject
+(@tbl-dataset-summary).
 
 The example is run on a subject-level train/test split, with the long-format API
 of `TpTDecisionTreeClassifier`. The minimal fit/predict workflow is:
@@ -124,17 +284,62 @@ pbcseq_example.hyperparameters
 ```
 
 The selected gamma comes from the training-grid search shown in
-@tbl-pbcseq-gamma-search.
+@tbl-pbcseq-gamma-search and visualized in @fig-pbcseq-gamma-profile.
 
 ```{python}
 #| label: tbl-pbcseq-gamma-search
-#| tbl-cap: "Gamma search for the pbcseq classification example. The search uses a 0.005 grid, but the table keeps only distinct training tree-total-impurity values and breaks ties by retaining the smallest gamma."
+#| tbl-cap: "Gamma search for the pbcseq classification example. The search uses a 0.001 grid, but the table keeps only distinct training tree-total-impurity values and breaks ties by retaining the smallest gamma."
 #| tbl-colwidths: [18, 28, 26, 14, 14]
 pbcseq_example.gamma_table.round(4)
 ```
 
+```{python}
+#| label: fig-pbcseq-gamma-profile
+#| fig-cap: "Training tree-total-impurity profile for the pbcseq classification example, after collapsing tied gamma values."
+#| out-width: "88%"
+profile = pbcseq_example.gamma_table.copy()
+selected_gamma = pbcseq_example.metrics["selected_gamma"]
+selected_row = profile.loc[profile["gamma"].eq(selected_gamma)].iloc[0]
+
+fig, ax = plt.subplots(figsize=(6.6, 4.1))
+ax.plot(
+    profile["gamma"],
+    profile["tree_total_impurity"],
+    color=PAPER_COLORS["teal"],
+    linewidth=2.3,
+    marker="o",
+    markersize=4.5,
+    markerfacecolor="white",
+)
+ax.axvline(selected_gamma, color=PAPER_COLORS["gold"], linestyle="--", linewidth=1.5)
+ax.scatter(
+    [selected_gamma],
+    [selected_row["tree_total_impurity"]],
+    s=70,
+    color=PAPER_COLORS["gold"],
+    edgecolor="white",
+    linewidth=0.8,
+    zorder=3,
+)
+ax.annotate(
+    f"selected gamma = {selected_gamma:.3f}",
+    xy=(selected_gamma, selected_row["tree_total_impurity"]),
+    xytext=(14, 12),
+    textcoords="offset points",
+    color=PAPER_COLORS["ink"],
+)
+ax.set_xlabel("Gamma")
+ax.set_ylabel("Training tree total impurity")
+ax.margins(x=0.04)
+plt.show()
+```
+
 The resulting subject-level metrics are shown in @tbl-pbcseq-metrics. A small
 preview of the held-out predictions is given in @tbl-pbcseq-predictions.
+With this finer gamma grid, the same depth-3, `min_samples_leaf=10`
+configuration selects `gamma = 0.184` and still uses later history: the
+learned tree splits at waves 2, 3, 4, and 7 rather than collapsing to
+baseline-only rules.
 
 ```{python}
 #| label: tbl-pbcseq-predictions
@@ -171,18 +376,25 @@ This is precisely the kind of output we want in a software note: the fitted tree
 shows explicitly which wave-specific biomarkers were selected by TpT, while the
 calling interface remains close to ordinary `scikit-learn` usage.
 
-[Note to self: add one short sentence explaining why the selected classification
-tree is clinically plausible, otherwise the figure risks feeling purely
-decorative.]{color="red"}
+The resulting splits are clinically interpretable: early bilirubin and prothrombin
+values appear prominently, which is coherent with their role as markers of liver
+dysfunction severity in the PBC setting.
 
-# Example 2: Subject-level regression on `dietox`
+# Example 2: State-level regression on `Produc`
 
-Our regression example uses `dietox`, a pig-growth longitudinal dataset
-distributed with `geepack` [@dataset-dietox]. For each pig, we hold out the last
-recorded weight as the response `final_weight`, and use the earlier repeated
-weights as the longitudinal covariate history. This produces a simple real-data
-regression task: predict the final observed weight of a subject from its earlier
-growth trajectory.
+Our regression example uses `Produc`, a public US state production panel
+available through Rdatasets [@dataset-produc]. The source data contain
+48 states followed yearly from 1970 to 1986. We keep three longitudinal
+predictors available at each wave: private capital stock (`pc`), employment
+(`emp`), and unemployment rate (`unemp`).
+For each state, we hold out the final recorded gross state product and predict
+that `final_gsp` from the preceding 16 yearly observations. This produces a
+compact, real, multi-wave regression problem with a richer temporal structure
+than the earlier single-feature prototype. To keep the example readable while
+still producing a nonzero selected gamma and non-baseline splits on the
+training impurity criterion, we use the predictor subset `pc`, `emp`, and
+`unemp` together with a depth-4 tree, `min_samples_leaf=1`, and
+`min_samples_split=2`.
 
 In this example we explicitly use the TpT conversion helper
 `long_to_wide(...)`, then fit the regressor on the resulting wide matrix and its
@@ -193,23 +405,24 @@ In this example we explicitly use the TpT conversion helper
 from scikit_longitudinal.estimators.trees import TpTDecisionTreeRegressor
 from scikit_longitudinal.estimators.trees.TpT._preprocessing import long_to_wide
 
-feature_columns = ["Pig", "Time", "duration", "Weight"]
+feature_columns = ["state", "time_index", "duration", "pc", "emp", "unemp"]
 
 wide_train = long_to_wide(
     train_df[feature_columns],
-    id_col="Pig",
-    time_col="Time",
+    id_col="state",
+    time_col="time_index",
     duration_col="duration",
     time_step=1.0,
-    feature_columns=["Weight"],
-    target=train_df["final_weight"],
+    feature_columns=["pc", "emp", "unemp"],
+    target=train_df["final_gsp"],
 )
 
 reg = TpTDecisionTreeRegressor(
     gamma=selected_gamma,
     criterion="squared_error",
-    max_depth=3,
-    min_samples_leaf=5,
+    max_depth=4,
+    min_samples_leaf=1,
+    min_samples_split=2,
     random_state=42,
     features_group=wide_train.feature_groups,
 )
@@ -222,118 +435,231 @@ The next two tables show the same training subjects before and after the
 explicit long-to-wide conversion.
 
 ```{python}
-#| label: tbl-dietox-long-preview
-#| tbl-cap: "Preview of the long-format dietox training data."
-#| tbl-colwidths: [12, 12, 16, 18, 22]
+#| label: tbl-produc-long-preview
+#| tbl-cap: "Preview of the long-format Produc training data."
+#| tbl-colwidths: [12, 10, 10, 10, 12, 12, 12, 12, 10]
 from analysis.tpt_examples import run_regression_example
 
-dietox_example = run_regression_example()
-dietox_example.long_preview.round(2)
+produc_example = run_regression_example()
+produc_example.long_preview.round(2)
 ```
 
 ```{python}
-#| label: tbl-dietox-wide-preview
-#| tbl-cap: "Preview of the wide-format matrix produced by long_to_wide for the dietox example."
-#| tbl-colwidths: [16, 14, 14, 14, 14, 18]
-dietox_example.wide_preview.round(2)
+#| label: tbl-produc-wide-preview
+#| tbl-cap: "Preview of the wide-format matrix produced by long_to_wide for the Produc example."
+#| tbl-colwidths: [14, 12, 12, 12, 12, 12, 12, 14]
+produc_example.wide_preview.round(2)
 ```
 
 ```{python}
 #| echo: true
-#| label: tbl-dietox-metrics
-#| tbl-cap: "Subject-level test metrics for the dietox regression example."
+#| label: tbl-produc-metrics
+#| tbl-cap: "State-level test metrics for the Produc regression example."
 #| tbl-colwidths: [34, 66]
-pd.DataFrame([dietox_example.metrics]).round(3)
+pd.DataFrame([produc_example.metrics]).round(3)
 ```
 
 ```{python}
-#| label: tbl-dietox-hyperparameters
-#| tbl-cap: "Hyperparameter choices for the dietox regression example."
+#| label: tbl-produc-hyperparameters
+#| tbl-cap: "Hyperparameter choices for the Produc regression example."
 #| tbl-colwidths: [34, 66]
-dietox_example.hyperparameters
+produc_example.hyperparameters
 ```
 
 ```{python}
-#| label: tbl-dietox-gamma-search
-#| tbl-cap: "Gamma search for the dietox regression example. The search uses a 0.005 grid, but the table keeps only distinct training tree-total-impurity values and breaks ties by retaining the smallest gamma."
-#| tbl-colwidths: [18, 28, 26, 14, 14]
-dietox_example.gamma_table.round(4)
+#| label: tbl-produc-gamma-search
+#| tbl-cap: "Regression gamma path for the Produc example on the article grid from 0.000 to 0.100 by 0.001."
+#| tbl-colwidths: [12, 26, 16, 16, 16]
+produc_example.gamma_table.loc[
+    :,
+    ["gamma", "tree_total_impurity", "root_time", "min_split_time", "max_split_time"],
+].round(3)
 ```
 
 ```{python}
-#| label: tbl-dietox-predictions
-#| tbl-cap: "Preview of held-out subject-level predictions for the dietox regression example."
+#| label: fig-produc-gamma-profile
+#| fig-cap: "Training tree-total-impurity profile (top) and selected split times (bottom) for the Produc regression example on the article grid from 0.000 to 0.100 by 0.001."
+#| out-width: "92%"
+profile = produc_example.gamma_table.copy()
+selected_gamma = produc_example.metrics["selected_gamma"]
+selected_row = profile.loc[profile["gamma"].eq(selected_gamma)].iloc[0]
+
+fig, axes = plt.subplots(2, 1, figsize=(7.1, 6.4), sharex=True, height_ratios=[3, 2])
+
+ax = axes[0]
+ax.plot(
+    profile["gamma"],
+    profile["tree_total_impurity"],
+    color=PAPER_COLORS["coral"],
+    linewidth=2.3,
+    marker="o",
+    markersize=4.5,
+    markerfacecolor="white",
+)
+ax.axvline(selected_gamma, color=PAPER_COLORS["gold"], linestyle="--", linewidth=1.5)
+ax.scatter(
+    [selected_gamma],
+    [selected_row["tree_total_impurity"]],
+    s=70,
+    color=PAPER_COLORS["gold"],
+    edgecolor="white",
+    linewidth=0.8,
+    zorder=3,
+)
+ax.annotate(
+    f"selected gamma = {selected_gamma:.3f}",
+    xy=(selected_gamma, selected_row["tree_total_impurity"]),
+    xytext=(14, 12),
+    textcoords="offset points",
+    color=PAPER_COLORS["ink"],
+)
+ax.set_xlabel("Gamma")
+ax.set_ylabel("Training tree total impurity")
+ax.yaxis.set_major_formatter(billion_formatter)
+ax.margins(x=0.04)
+
+ax2 = axes[1]
+ax2.plot(
+    profile["gamma"],
+    profile["root_time"],
+    color=PAPER_COLORS["ink"],
+    linewidth=2.0,
+    marker="o",
+    markersize=4,
+    label="root time",
+)
+ax2.plot(
+    profile["gamma"],
+    profile["min_split_time"],
+    color=PAPER_COLORS["teal"],
+    linewidth=1.8,
+    marker="s",
+    markersize=3.8,
+    label="min split time",
+)
+ax2.plot(
+    profile["gamma"],
+    profile["max_split_time"],
+    color=PAPER_COLORS["plum"],
+    linewidth=1.8,
+    marker="^",
+    markersize=4,
+    label="max split time",
+)
+ax2.axvline(selected_gamma, color=PAPER_COLORS["gold"], linestyle="--", linewidth=1.5)
+ax2.set_xlabel("Gamma")
+ax2.set_ylabel("Selected split time")
+ax2.legend(frameon=False, loc="upper right", ncol=3)
+ax2.margins(x=0.04)
+plt.show()
+```
+
+```{python}
+#| label: tbl-produc-predictions
+#| tbl-cap: "Preview of held-out state-level predictions for the Produc regression example."
 #| tbl-colwidths: [18, 28, 28, 26]
-dietox_example.predictions.head(8).round(2)
+produc_example.predictions.head(8).round(2)
 ```
 
 ```{python}
-#| label: fig-dietox-predictions
-#| fig-cap: "Observed versus predicted final pig weights in the dietox regression example, with predictions computed from baseline-only, mid-history, and full-history inputs."
-#| out-width: "85%"
+#| label: fig-produc-predictions
+#| fig-cap: "Observed versus predicted final gross state product in the Produc regression example, with predictions computed from baseline-only, mid-history, and full-history inputs."
+#| out-width: "92%"
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_absolute_error, r2_score
 
 palette = {
-    "Baseline history": "#1b9e77",
-    "Mid history": "#d95f02",
-    "Full history": "#7570b3",
+    "Baseline history": PAPER_COLORS["teal"],
+    "Mid history": PAPER_COLORS["gold"],
+    "Full history": PAPER_COLORS["plum"],
 }
 
-fig, ax = plt.subplots(figsize=(6.5, 4.5))
-for stage, frame in dietox_example.stage_predictions.groupby("stage", sort=False):
+fig, ax = plt.subplots(figsize=(7.0, 4.8))
+for stage, frame in produc_example.stage_predictions.groupby("stage", sort=False):
     ax.scatter(
         frame["observed"],
         frame["predicted"],
-        alpha=0.75,
+        alpha=0.8,
         label=stage,
         color=palette[stage],
+        s=42,
+        edgecolor="white",
+        linewidth=0.5,
     )
 limits = [
-    dietox_example.stage_predictions[["observed", "predicted"]].min().min(),
-    dietox_example.stage_predictions[["observed", "predicted"]].max().max(),
+    produc_example.stage_predictions[["observed", "predicted"]].min().min(),
+    produc_example.stage_predictions[["observed", "predicted"]].max().max(),
 ]
 ax.plot(limits, limits, linestyle="--", linewidth=1, color="black")
-ax.set_xlabel("Observed final weight")
-ax.set_ylabel("Predicted final weight")
-ax.set_title("TpT regression on dietox")
+ax.set_xlabel("Observed final GSP")
+ax.set_ylabel("Predicted final GSP")
+ax.set_title("TpT regression on Produc")
+ax.xaxis.set_major_formatter(thousands_formatter)
+ax.yaxis.set_major_formatter(thousands_formatter)
 ax.legend(frameon=False, loc="upper left")
+
+stage_text = "\n".join(
+    [
+        f"{stage}: MAE={mean_absolute_error(frame['observed'], frame['predicted']):.0f}, R^2={r2_score(frame['observed'], frame['predicted']):.2f}"
+        for stage, frame in produc_example.stage_predictions.groupby("stage", sort=False)
+    ]
+)
+ax.text(
+    0.98,
+    0.03,
+    stage_text,
+    transform=ax.transAxes,
+    ha="right",
+    va="bottom",
+    fontsize=8.5,
+    color=PAPER_COLORS["ink"],
+    bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": PAPER_COLORS["grid"]},
+)
 plt.show()
 ```
 
 The selected regression tree can also be shown directly with the dedicated
 `plot_tree` exporter.
 
+On the article grid from `0.000` to `0.100` by `0.001`, the selected
+regression gamma is `0.011`. The corresponding tree still uses later history,
+with selected split times between waves 1 and 5. As gamma increases further on
+that grid, the tree is pulled back toward baseline: the root split moves to
+wave 0 by about `gamma = 0.031`, and from about `gamma = 0.055` onward all
+selected split times are at baseline.
+
 ```{python}
-#| label: fig-dietox-tree
-#| fig-cap: "Selected TpT regression tree on dietox, displayed with the dedicated plot_tree exporter."
+#| label: fig-produc-tree
+#| fig-cap: "Selected TpT regression tree on Produc, displayed with the dedicated plot_tree exporter."
 #| out-width: "100%"
-fig, ax = plt.subplots(figsize=(11, 6))
+fig, ax = plt.subplots(figsize=(13, 6.6))
 tree.plot_tree(
-    dietox_example.model,
-    feature_names=dietox_example.feature_names,
+    produc_example.model,
+    feature_names=produc_example.feature_names,
     filled=True,
     rounded=True,
-    fontsize=9,
-    tpt_time_scale=0.30,
+    fontsize=7,
+    tpt_time_scale=0.18,
     ax=ax,
 )
-ax.set_title(f"TpT regression tree (selected gamma = {dietox_example.metrics['selected_gamma']})")
+ax.set_title(f"TpT regression tree (selected gamma = {produc_example.metrics['selected_gamma']})")
 plt.show()
 ```
 
-[Note to self: the regression example is reproducible and useful for software
-documentation, but a reviewer may ask whether a single-feature longitudinal
-history is too simple for the final note. Keep a richer backup dataset in mind.]{color="red"}
+[Note to self: Produc is a much better multi-wave regression example than the
+earlier single-feature draft, but it is still panel-economic data rather than an
+individual-level biomedical cohort. If a stronger public longitudinal
+regression dataset appears, keep replacement open.]{color="red"}
 
 [Note to self: the visual style is still functional rather than polished. Before
-submission, improve the figure styling and overall visual consistency across the
-tree plots, scatter plot, and tables.]{color="red"}
+submission, improve the final typography and harmonize colors across tables,
+tree plots, and scatter plots.]{color="red"}
 
 # Discussion
 
 These two examples are intentionally small. Their role is not to provide a full
 benchmarking study, but to document a reproducible and inspectable usage path for
-TpT within `scikit-longitudinal`. Together they illustrate three software-facing
+TpT within `scikit-longitudinal`. Together they illustrate four software-facing
 points:
 
 1. subject-level train/test evaluation can be carried out while keeping the
@@ -345,6 +671,13 @@ points:
    helper before moving to a more formal model-selection strategy;
 4. the learned trees remain readable because the selected splits are tied to
    explicit wave-indexed feature names.
+
+Most importantly for this note, the exported trees show both what matters and
+when it matters. In `pbcseq`, the node labels tell us whether bilirubin or
+prothrombin is selected from an early or later visit; in `Produc`, they reveal
+whether public capital, private capital, employment, or unemployment becomes
+decisive at the beginning or later in the state-level history. This explicit
+predictor-plus-wave readability is one of the main practical strengths of TpT.
 
 Future revisions of this note can stay short while becoming more robust by
 switching the environment from pinned GitHub SHAs to released package versions,

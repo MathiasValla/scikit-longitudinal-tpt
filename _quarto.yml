@@ -22,7 +22,7 @@ description: |
   A short reproducible software note presenting the Time-penalized Trees (TpT)
   splitter in scikit-longitudinal, with one classification example on the
   primary biliary cirrhosis longitudinal dataset and one regression example on
-  the dietox pig growth dataset.
+  the Produc US state production panel.
 abstract: >+
   We present the Time-penalized Trees (TpT) splitter as exposed in
   scikit-longitudinal. TpT extends decision-tree split selection to longitudinal
@@ -31,7 +31,7 @@ abstract: >+
   methodological treatment. We document the current TpT API in
   scikit-longitudinal and provide two compact real-data examples: a
   subject-level classification task on the primary biliary cirrhosis follow-up
-  data and a subject-level regression task on the dietox pig growth data. The
+  data and a state-level regression task on the Produc panel data. The
   accompanying repository contains a frozen Python environment, data preparation
   scripts, and Quarto sources for the paper.
 keywords: [longitudinal data, decision trees, reproducibility, Python, software]
