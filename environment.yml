@@ -12,7 +12,7 @@ dependencies:
   - pandas
   - scipy
   - pip:
-      # Replace these temporary GitHub SHAs with released package versions once
-      # the TpT pull requests are merged upstream.
-      - git+https://github.com/MathiasValla/scikit-lexicographical-trees.git@425b13bbc
-      - git+https://github.com/MathiasValla/scikit-longitudinal.git@4dbb600
+      # TpT depends on the upstream scikit-lexicographical-trees 0.0.5 release.
+      - scikit-lexicographical-trees==0.0.5
+      # Keep scikit-longitudinal pinned to the TpT paper implementation commit.
+      - git+https://github.com/MathiasValla/scikit-longitudinal.git@a66979f6d9039ea1d7f9d02be69e29781c34fe46
