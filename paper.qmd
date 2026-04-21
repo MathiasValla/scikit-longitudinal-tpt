@@ -1,14 +1,26 @@
 # Introduction
 
 `scikit-longitudinal` extends the `scikit-learn` ecosystem with estimators and
-workflows tailored to repeated-measures data [@provost2025sklong]. This software
-note focuses on the Time-penalized Trees (TpT) splitter, a decision-tree split
+workflows tailored to repeated-measures data [@provost2025sklong]. This article
+focuses on the Time-penalized Trees (TpT) splitter, a decision-tree split
 rule designed for longitudinal covariates [@valla2024tpt]. Rather than
 reproducing the full methodological development, we document the current TpT API
 in the package and provide two compact, fully reproducible real-data examples.
-Beyond the original algorithmic presentation, TpT has also been shown to be a
-consistent estimator for a non-empty set of observation times
-[@valla2026consistency].
+Beyond the original algorithmic presentation, a recent theoretical analysis
+shows that TpT is a consistent estimator along a non-empty set of observation
+times under explicit structural assumptions [@valla2026consistency].
+
+Tree-based methods for longitudinal or clustered data already span several
+families. Model-based recursive partitioning and generalized linear model trees
+target subgroup structure through parameter-instability ideas
+[@zeileis2008mob; @seibold2019glmtrees]. RE-EM trees and mixed-effects random
+forests incorporate random effects to account for within-subject or within-cluster
+dependence [@sela2012reem; @hajjem2014merf]. Survival-tree extensions such as
+LTRC trees can also accommodate time-varying covariates in censored settings
+[@fu2017ltrc]. TpT occupies a narrower but complementary niche: it keeps a
+CART-style impurity objective and modifies the split-selection criterion through
+an explicit time penalty, making the fitted tree directly readable in terms of
+both predictor and wave [@valla2024tpt].
 
 The repository is structured as required by Computo [@computo]: the paper is
 written in Quarto, the environment is frozen in `environment.yml`, and the data
@@ -16,9 +28,55 @@ preparation and analysis code are kept alongside the manuscript.
 
 # The TpT splitter in `scikit-longitudinal`
 
-At a tree node associated with parent time index $t_p$, TpT scores a candidate
-split at time $t_c$ by multiplying the usual impurity improvement $\Delta I$ by
-an exponential time penalty:
+Recursive partitioning grows a tree by repeatedly splitting a parent node into
+child nodes that are more homogeneous with respect to the target variable. In
+other words, each split is chosen to reduce within-node heterogeneity, or
+equivalently to maximize the loss of impurity from the parent node to its
+children [@breiman1984cart].
+
+For a classification node $g$, let $p_k(g)$ denote the proportion of class
+$k \in \{1, \ldots, K\}$ inside the node. An impurity measure should be
+nonnegative, equal to $0$ when the node is pure, maximal at the uniform class
+distribution, and symmetric in the class labels. Two standard choices are the
+entropy
+
+$$
+I_{\text{Ent}}(g) = -\sum_{k=1}^{K} p_k(g)\log p_k(g)
+$$
+
+and the Gini impurity
+
+$$
+I_{\text{Gini}}(g) = \sum_{k=1}^{K} p_k(g)\left(1 - p_k(g)\right)
+= 1 - \sum_{k=1}^{K} p_k(g)^2.
+$$
+
+For regression, CART typically uses the node mean squared error
+
+$$
+I_{\text{MSE}}(g) = \frac{1}{N(g)}
+\sum_{i: x^{(i)} \in g} \left(y^{(i)} - \bar y_g\right)^2,
+$$
+
+where $\bar y_g$ is the empirical mean response in node $g$. If a parent node
+$g_p$ is split into left and right child nodes $g_l$ and $g_r$, the usual CART
+goodness-of-split is the impurity decrease
+
+$$
+\Delta I(g_p; g_l, g_r) =
+I(g_p) -
+\left[
+\frac{N(g_l)}{N(g_p)} I(g_l) +
+\frac{N(g_r)}{N(g_p)} I(g_r)
+\right],
+$$
+
+with $I(g)$ standing for one of the classification impurities above, or for the
+MSE in regression.
+
+At a tree node associated with parent time index $t_p$, TpT modifies this
+criterion and scores a candidate split at time $t_c$ by multiplying the usual
+impurity improvement $\Delta I$ by an exponential time penalty:
 
 $$
 G_{\gamma} = \Delta I \exp \left[-\gamma (t_c - t_p)\right].
@@ -34,14 +92,51 @@ From a user perspective, the main entry points are
 LONG-format data directly by specifying an identifier column, an observation-time
 column and a subject-specific duration column.
 
-For this preliminary software note, we select $\gamma$ on a small candidate grid
-by minimizing the fitted tree's weighted total leaf impurity on the training
-split. This is intentionally simple and should be viewed as a placeholder for a
-more formal tuning strategy in the final submission.
+The same splitter can also be reached from an explicit wide matrix together
+with `features_group` metadata. We use both entry points below:
+the `pbcseq` example illustrates direct long-format fitting, while the `Produc`
+example makes the long-to-wide conversion explicit.
 
-[Note to self: a Computo reviewer may reasonably ask for a stronger justification
-of this gamma-selection rule, or for a validation-based alternative. Keep the
-placeholder wording explicit and avoid overselling it.]{color="red"}
+For this article, we select $\gamma$ on a small candidate grid
+by minimizing the fitted tree's weighted total leaf impurity on the training
+split. This is a pragmatic paper-specific heuristic whose only goal is to keep
+the examples deterministic and easy to rerun; it should not yet be interpreted
+as a recommended general tuning rule for applied work.
+
+## A compact theoretical guarantee
+
+TpT is not only a practical heuristic. In @valla2026consistency, the analysis
+focuses on record-high times, that is, feasible times whose penalized
+population envelope dominates all later competitors. The main result requires
+separated penalized-envelope gaps (Assumption A1), finite-sample attainability
+of the corresponding envelope peaks (Assumption A2), the TpT-$\alpha$
+branch-growing rule, and the regularity and noise assumptions needed to invoke
+the Klusowski-Tian oracle inequality for depth-$K$ CART estimators
+[@klusowski2024cart].
+
+::: {.theorem}
+**Theorem 1 Valla and Milhaud (2026).**
+Assume (A1)--(A2), the TpT-$\alpha$ growing rule, and the regularity and noise
+conditions required to apply the Klusowski-Tian oracle inequality for depth-$K$
+CART estimators. For every fixed record-high time $t_k$ such that the
+approximation bias vanishes as $K(t_k) \to \infty$, the estimator fitted on the
+realized $t_k$-subtree satisfies
+
+$$
+\mathbb{E}\!\left[\left\lVert \hat f_{t_k, K(t_k)} - f_{t_k}^{\star} \right\rVert^2_{L^2(P_{X(t_k)})}\right]
+\longrightarrow 0
+\qquad \text{as } n \to \infty.
+$$
+:::
+
+This is intentionally narrower than a blanket consistency claim over all time
+indices. The result identifies a non-empty sequence of times at which the
+penalized TpT rule recovers a consistent subtree estimator. We include this
+result only to summarize the current theoretical status of TpT; the paper itself
+remains focused on software usage. For an implementation-focused article, the practical
+takeaway is that the TpT framework underlying the splitter now has a precise
+asymptotic analysis, even though the present package implementation is discussed
+here from an operational rather than theorem-verification standpoint.
 
 ::: {.callout-note}
 ## Current scope
@@ -61,15 +156,30 @@ The repository contains:
 - `analysis/tpt_examples.py` with helper functions used by the paper;
 - `environment.yml` with a frozen Python environment.
 
-The environment currently pins the TpT-enabled forks by GitHub SHA so that the
-examples remain runnable before the upstream releases catch up with the merged
-pull requests.
+The quick-start installation shown below is the user-facing entry point. Exact
+reproduction of this paper instead relies on `environment.yml`, which fixes
+Python 3.11, the released `scikit-lexicographical-trees==0.0.5`, and the
+`scikit-longitudinal` commit used for the TpT wrapper/API state documented
+here. The helper script `setup-render-ci.sh` ensures that Quarto renders
+against the extended tree backend required by the TpT examples.
 
 ```{python}
 #| echo: false
+import warnings
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.ticker import FuncFormatter
+
+warnings.filterwarnings(
+    "ignore",
+    message="pkg_resources is deprecated as an API.*",
+    category=UserWarning,
+)
+
+pd.set_option("display.max_colwidth", None)
+pd.set_option("display.width", 200)
+pd.set_option("display.max_columns", None)
 
 PAPER_COLORS = {
     "ink": "#20323f",
@@ -105,7 +215,7 @@ billion_formatter = FuncFormatter(lambda value, _: f"{value / 1e9:.1f}B")
 # Install, quick start, and main parameters
 
 The official `scikit-longitudinal` getting-started guide is intentionally
-lightweight, and the same philosophy fits this note well. For a standard Python
+lightweight, and the same philosophy fits this article well. For a standard Python
 environment, the minimal installation is:
 
 ```bash
@@ -141,37 +251,37 @@ The small set of parameters that matters most in practice is summarized in
 
 ```{python}
 #| label: tbl-tpt-main-parameters
-#| tbl-cap: "Minimal set of TpT parameters most relevant for the examples in this note."
+#| tbl-cap: "Minimal set of TpT parameters most relevant for the examples in this article."
 #| tbl-colwidths: [26, 74]
 pd.DataFrame(
     [
         {
             "parameter": "gamma",
-            "role": "Strength of the exponential time penalty. `gamma = 0` removes the penalty; larger values favour earlier waves.",
+            "role": "Time-penalty strength; larger values favour earlier waves.",
         },
         {
             "parameter": "max_depth, min_samples_leaf",
-            "role": "Standard tree-regularization parameters controlling size and stability of the fitted tree.",
+            "role": "Standard tree-regularization parameters controlling tree size and stability.",
         },
         {
             "parameter": "assume_long_format",
-            "role": "If `True`, TpT converts a LONG-format dataframe to the wide matrix required by the underlying splitter.",
+            "role": "If `True`, TpT converts long data to the wide matrix used by the splitter.",
         },
         {
             "parameter": "id_col, time_col, duration_col",
-            "role": "Structural columns needed for the LONG-format interface.",
+            "role": "Structural columns required by the long-format interface.",
         },
         {
             "parameter": "time_step",
-            "role": "Granularity used to discretize time into wave indices before fitting.",
+            "role": "Granularity used to discretize time into wave indices.",
         },
         {
             "parameter": "long_feature_columns",
-            "role": "Repeated-measures covariates to keep when using the LONG-format wrapper API.",
+            "role": "Repeated-measures predictors kept by the long-format wrapper.",
         },
         {
             "parameter": "features_group",
-            "role": "Temporal grouping of wave-expanded columns; this is required when fitting on an explicit wide matrix rather than through the LONG-format wrapper.",
+            "role": "Wave-group metadata required when fitting an explicit wide matrix.",
         },
     ]
 )
@@ -201,8 +311,11 @@ pipeline = LongitudinalPipeline(
 )
 ```
 
-This note keeps the examples at the estimator level, but the API is compatible
-with these larger package workflows.
+This article keeps the examples at the estimator level, but the API is compatible
+with these larger package workflows. In particular, the two examples below are
+meant to bridge the package documentation and practical usage: `pbcseq` uses the
+long-format wrapper directly, whereas `Produc` shows the explicit conversion and
+the low-level `features_group` interface.
 
 # Data sets
 
@@ -213,11 +326,15 @@ The `pbcseq` data contain follow-up laboratory measurements for the randomized
 Mayo Clinic primary biliary cirrhosis trial, with visits planned at 6 months,
 1 year, and yearly thereafter [@dataset-pbcseq]. The `Produc` data form a
 balanced annual panel of 48 US states from 1970 to 1986 [@dataset-produc].
+Together they provide two deliberately different views of TpT: a subject-level
+clinical classification problem with irregular follow-up, and a compact
+multi-wave regression panel where the effect of $\gamma$ on selected split times
+is easy to inspect.
 
 ```{python}
 #| label: tbl-dataset-summary
 #| tbl-cap: "Compact summary of the two public datasets used in the paper."
-#| tbl-colwidths: [12, 16, 26, 26, 20]
+#| tbl-colwidths: [12, 16, 28, 22, 22]
 from analysis.tpt_examples import dataset_summary_table
 
 dataset_summary_table()
@@ -263,15 +380,16 @@ proba = clf.predict_proba(test_df[feature_columns])[:, 1]
 ```
 
 ```{python}
-#| echo: true
+#| echo: false
 #| label: tbl-pbcseq-metrics
 #| tbl-cap: "Subject-level test metrics for the pbcseq classification example."
+#| tbl-colwidths: [58, 42]
 import pandas as pd
 
-from analysis.tpt_examples import run_classification_example
+from analysis.tpt_examples import metrics_table, run_classification_example
 
 pbcseq_example = run_classification_example()
-pd.DataFrame([pbcseq_example.metrics]).round(3)
+metrics_table(pbcseq_example.metrics, task="classification")
 ```
 
 We also report the small hyperparameter set used for this preliminary example.
@@ -295,9 +413,16 @@ pbcseq_example.gamma_table.round(4)
 
 ```{python}
 #| label: fig-pbcseq-gamma-profile
-#| fig-cap: "Training tree-total-impurity profile for the pbcseq classification example, after collapsing tied gamma values."
+#| fig-cap: "Lower-envelope training tree-total-impurity profile for the pbcseq classification example, extracted from the full 0.001 gamma grid by keeping the local minima of the oscillating path."
 #| out-width: "88%"
-profile = pbcseq_example.gamma_table.copy()
+full_profile = pbcseq_example.gamma_profile.copy().reset_index(drop=True)
+values = full_profile["tree_total_impurity"].to_numpy()
+mask = [False] * len(full_profile)
+for idx in range(len(full_profile)):
+    left = values[idx - 1] if idx > 0 else values[idx]
+    right = values[idx + 1] if idx < len(full_profile) - 1 else values[idx]
+    mask[idx] = (values[idx] <= left) and (values[idx] <= right)
+profile = full_profile.loc[mask].copy()
 selected_gamma = pbcseq_example.metrics["selected_gamma"]
 selected_row = profile.loc[profile["gamma"].eq(selected_gamma)].iloc[0]
 
@@ -306,9 +431,10 @@ ax.plot(
     profile["gamma"],
     profile["tree_total_impurity"],
     color=PAPER_COLORS["teal"],
-    linewidth=2.3,
+    linewidth=1.2,
+    alpha=0.8,
     marker="o",
-    markersize=4.5,
+    markersize=1.8,
     markerfacecolor="white",
 )
 ax.axvline(selected_gamma, color=PAPER_COLORS["gold"], linestyle="--", linewidth=1.5)
@@ -339,7 +465,9 @@ preview of the held-out predictions is given in @tbl-pbcseq-predictions.
 With this finer gamma grid, the same depth-3, `min_samples_leaf=10`
 configuration selects `gamma = 0.184` and still uses later history: the
 learned tree splits at waves 2, 3, 4, and 7 rather than collapsing to
-baseline-only rules.
+baseline-only rules. This is the behavior we want to expose in the article:
+the time penalty regularizes the use of history without erasing it when later
+measurements still provide a clearly better impurity reduction.
 
 ```{python}
 #| label: tbl-pbcseq-predictions
@@ -350,6 +478,10 @@ pbcseq_example.predictions.head(8).round(3)
 
 The fitted tree is displayed below with the dedicated `plot_tree` exporter,
 using the wide feature names built internally by the TpT preprocessing step.
+
+::: {.content-visible when-format="pdf"}
+\clearpage
+:::
 
 ```{python}
 #| label: fig-pbcseq-tree
@@ -372,13 +504,14 @@ ax.set_title(f"TpT classification tree (selected gamma = {pbcseq_example.metrics
 plt.show()
 ```
 
-This is precisely the kind of output we want in a software note: the fitted tree
+This is precisely the kind of output we want in this article: the fitted tree
 shows explicitly which wave-specific biomarkers were selected by TpT, while the
-calling interface remains close to ordinary `scikit-learn` usage.
-
-The resulting splits are clinically interpretable: early bilirubin and prothrombin
-values appear prominently, which is coherent with their role as markers of liver
-dysfunction severity in the PBC setting.
+calling interface remains close to ordinary `scikit-learn` usage. The node
+labels make the classifier interpretable in both dimensions at once: which
+biomarker matters, and at which follow-up wave it becomes decisive for the split.
+In this run, the selected nonzero gamma still preserves several later visits:
+bilirubin enters at waves 2 and 4, albumin at waves 3 and 4, prothrombin time at
+wave 7, and AST at wave 3.
 
 # Example 2: State-level regression on `Produc`
 
@@ -388,13 +521,14 @@ available through Rdatasets [@dataset-produc]. The source data contain
 predictors available at each wave: private capital stock (`pc`), employment
 (`emp`), and unemployment rate (`unemp`).
 For each state, we hold out the final recorded gross state product and predict
-that `final_gsp` from the preceding 16 yearly observations. This produces a
-compact, real, multi-wave regression problem with a richer temporal structure
-than the earlier single-feature prototype. To keep the example readable while
-still producing a nonzero selected gamma and non-baseline splits on the
-training impurity criterion, we use the predictor subset `pc`, `emp`, and
-`unemp` together with a depth-4 tree, `min_samples_leaf=1`, and
-`min_samples_split=2`.
+that `final_gsp` from the preceding 16 yearly observations. We keep `Produc`
+deliberately: although it is an economic panel rather than an individual-level
+biomedical cohort, its 17 annual waves and three interpretable predictors make
+the effect of the TpT time penalty easy to see in a small real dataset. To keep
+the example readable while still producing a nonzero selected gamma and
+non-baseline splits on the training impurity criterion, we use the predictor
+subset `pc`, `emp`, and `unemp` together with a depth-4 tree,
+`min_samples_leaf=1`, and `min_samples_split=2`.
 
 In this example we explicitly use the TpT conversion helper
 `long_to_wide(...)`, then fit the regressor on the resulting wide matrix and its
@@ -438,7 +572,7 @@ explicit long-to-wide conversion.
 #| label: tbl-produc-long-preview
 #| tbl-cap: "Preview of the long-format Produc training data."
 #| tbl-colwidths: [12, 10, 10, 10, 12, 12, 12, 12, 10]
-from analysis.tpt_examples import run_regression_example
+from analysis.tpt_examples import metrics_table, run_regression_example
 
 produc_example = run_regression_example()
 produc_example.long_preview.round(2)
@@ -452,11 +586,11 @@ produc_example.wide_preview.round(2)
 ```
 
 ```{python}
-#| echo: true
+#| echo: false
 #| label: tbl-produc-metrics
 #| tbl-cap: "State-level test metrics for the Produc regression example."
-#| tbl-colwidths: [34, 66]
-pd.DataFrame([produc_example.metrics]).round(3)
+#| tbl-colwidths: [58, 42]
+metrics_table(produc_example.metrics, task="regression")
 ```
 
 ```{python}
@@ -468,9 +602,11 @@ produc_example.hyperparameters
 
 ```{python}
 #| label: tbl-produc-gamma-search
-#| tbl-cap: "Regression gamma path for the Produc example on the article grid from 0.000 to 0.100 by 0.001."
+#| tbl-cap: "Regression gamma path for the Produc example, reduced to the breakpoints where either the tree total impurity or the selected split times change."
 #| tbl-colwidths: [12, 26, 16, 16, 16]
-produc_example.gamma_table.loc[
+from analysis.tpt_examples import compress_regression_gamma_table
+
+compress_regression_gamma_table(produc_example.gamma_table).loc[
     :,
     ["gamma", "tree_total_impurity", "root_time", "min_split_time", "max_split_time"],
 ].round(3)
@@ -558,37 +694,33 @@ plt.show()
 #| label: tbl-produc-predictions
 #| tbl-cap: "Preview of held-out state-level predictions for the Produc regression example."
 #| tbl-colwidths: [18, 28, 28, 26]
-produc_example.predictions.head(8).round(2)
+produc_example.predictions.head(5).round(2)
 ```
 
 ```{python}
 #| label: fig-produc-predictions
-#| fig-cap: "Observed versus predicted final gross state product in the Produc regression example, with predictions computed from baseline-only, mid-history, and full-history inputs."
+#| fig-cap: "Observed versus predicted final gross state product in the Produc regression example, using the full-history inputs."
 #| out-width: "92%"
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error, r2_score
 
-palette = {
-    "Baseline history": PAPER_COLORS["teal"],
-    "Mid history": PAPER_COLORS["gold"],
-    "Full history": PAPER_COLORS["plum"],
-}
+frame = produc_example.stage_predictions.loc[
+    produc_example.stage_predictions["stage"].eq("Full history")
+].copy()
 
 fig, ax = plt.subplots(figsize=(7.0, 4.8))
-for stage, frame in produc_example.stage_predictions.groupby("stage", sort=False):
-    ax.scatter(
-        frame["observed"],
-        frame["predicted"],
-        alpha=0.8,
-        label=stage,
-        color=palette[stage],
-        s=42,
-        edgecolor="white",
-        linewidth=0.5,
-    )
+ax.scatter(
+    frame["observed"],
+    frame["predicted"],
+    alpha=0.85,
+    color=PAPER_COLORS["plum"],
+    s=42,
+    edgecolor="white",
+    linewidth=0.5,
+)
 limits = [
-    produc_example.stage_predictions[["observed", "predicted"]].min().min(),
-    produc_example.stage_predictions[["observed", "predicted"]].max().max(),
+    frame[["observed", "predicted"]].min().min(),
+    frame[["observed", "predicted"]].max().max(),
 ]
 ax.plot(limits, limits, linestyle="--", linewidth=1, color="black")
 ax.set_xlabel("Observed final GSP")
@@ -596,18 +728,10 @@ ax.set_ylabel("Predicted final GSP")
 ax.set_title("TpT regression on Produc")
 ax.xaxis.set_major_formatter(thousands_formatter)
 ax.yaxis.set_major_formatter(thousands_formatter)
-ax.legend(frameon=False, loc="upper left")
-
-stage_text = "\n".join(
-    [
-        f"{stage}: MAE={mean_absolute_error(frame['observed'], frame['predicted']):.0f}, R^2={r2_score(frame['observed'], frame['predicted']):.2f}"
-        for stage, frame in produc_example.stage_predictions.groupby("stage", sort=False)
-    ]
-)
 ax.text(
     0.98,
     0.03,
-    stage_text,
+    f"Full history: MAE={mean_absolute_error(frame['observed'], frame['predicted']):.0f}, R^2={r2_score(frame['observed'], frame['predicted']):.2f}",
     transform=ax.transAxes,
     ha="right",
     va="bottom",
@@ -626,7 +750,10 @@ regression gamma is `0.011`. The corresponding tree still uses later history,
 with selected split times between waves 1 and 5. As gamma increases further on
 that grid, the tree is pulled back toward baseline: the root split moves to
 wave 0 by about `gamma = 0.031`, and from about `gamma = 0.055` onward all
-selected split times are at baseline.
+selected split times are at baseline. The gamma path therefore shows the
+intended TpT tradeoff quite clearly: modest penalization still allows
+mid-history splits when they materially reduce impurity, whereas stronger
+penalization progressively collapses the tree toward earlier waves.
 
 ```{python}
 #| label: fig-produc-tree
@@ -646,47 +773,48 @@ ax.set_title(f"TpT regression tree (selected gamma = {produc_example.metrics['se
 plt.show()
 ```
 
-[Note to self: Produc is a much better multi-wave regression example than the
-earlier single-feature draft, but it is still panel-economic data rather than an
-individual-level biomedical cohort. If a stronger public longitudinal
-regression dataset appears, keep replacement open.]{color="red"}
-
-[Note to self: the visual style is still functional rather than polished. Before
-submission, improve the final typography and harmonize colors across tables,
-tree plots, and scatter plots.]{color="red"}
+This makes the regression example a useful complement to `pbcseq`: the exported
+tree tells us not only which economic predictor matters, but also whether it
+matters near the beginning of the panel or later in the observed trajectory. In
+the selected tree, the root decision already depends on employment at wave 1,
+while deeper refinements still use later information through private capital at
+wave 2 and employment again at wave 5.
 
 # Discussion
 
 These two examples are intentionally small. Their role is not to provide a full
-benchmarking study, but to document a reproducible and inspectable usage path for
-TpT within `scikit-longitudinal`. Together they illustrate four software-facing
-points:
+benchmarking study, but to document a reproducible and inspectable usage path
+for TpT within `scikit-longitudinal`. Together they show that TpT can be fit
+either directly from LONG-format data or from an explicit wide matrix, tuned
+with a simple deterministic gamma heuristic for demonstration purposes, and
+exported as readable wave-indexed trees.
 
-1. subject-level train/test evaluation can be carried out while keeping the
-   inputs in LONG format, or by explicit conversion to the wide matrix expected
-   by the core TpT splitter;
-2. TpT exposes a familiar `scikit-learn`-like interface through
-   `fit`, `predict`, and `predict_proba`;
-3. preliminary gamma tuning can be implemented with a compact impurity-based
-   helper before moving to a more formal model-selection strategy;
-4. the learned trees remain readable because the selected splits are tied to
-   explicit wave-indexed feature names.
+Most importantly for this article, the exported trees show both what matters and
+when it matters. In `pbcseq`, the classifier can isolate clinically meaningful
+biomarker thresholds at specific follow-up waves rather than collapsing the
+history into a single summary. In `Produc`, the regression tree reveals whether
+private capital, employment, or unemployment becomes informative early or later
+in the state-level trajectory. This predictor-plus-wave readability is the main
+practical property we wanted to make visible.
 
-Most importantly for this note, the exported trees show both what matters and
-when it matters. In `pbcseq`, the node labels tell us whether bilirubin or
-prothrombin is selected from an early or later visit; in `Produc`, they reveal
-whether public capital, private capital, employment, or unemployment becomes
-decisive at the beginning or later in the state-level history. This explicit
-predictor-plus-wave readability is one of the main practical strengths of TpT.
+The paper also has clear limits. We deliberately keep the methodological
+discussion short, we do not attempt a large comparative benchmark, and the
+gamma-selection rule used here is only a reproducible placeholder rather than a
+definitive model-selection recommendation. On the software side, missing-value
+routing inside the Cython TpT splitter is still future work.
 
-Future revisions of this note can stay short while becoming more robust by
-switching the environment from pinned GitHub SHAs to released package versions,
-and by updating the examples once the remaining TpT implementation limitations
-around missing-value routing are resolved.
+Natural next steps are equally clear: implement survival-specific evaluation
+metrics, add richer visualization utilities such as subject-level trajectory
+displays inside the fitted tree, build ensemble methods on top of the current
+splitter, and generalize the time penalty so that prior temporal structure such
+as lagged predictor effects can be encoded directly. Because TpT is now
+integrated into the tree-building backend, these extensions are largely a
+question of design and validation rather than reimplementing the core split rule
+from scratch.
 
-[Note to self: explicitly state near submission time whether the paper is tied
-to released package versions or to pinned development SHAs, because Computo
-reviewers will care about long-term reproducibility.]{color="red"}
+Within that scope, TpT already has the ingredients of a useful
+`scikit-longitudinal` contribution: a lightweight API, interpretable exported
+trees, and a growing theoretical foundation.
 
 # Acknowledgements
 
@@ -694,17 +822,10 @@ Work(s) conducted within the Research Chair DIALog under the aegis of the Risk
 Foundation, a joint initiative by Université Paris-Dauphine PSL and CNP
 Assurances.
 
-Placeholder for Simon Provost's acknowledgements.
-
-[Note to self: fill Simon's affiliation and acknowledgements before submission,
-and check whether Computo wants a software-availability or funding sentence in a
-more specific location.]{color="red"}
+Additional acknowledgements for Simon Provost can be added in the
+submission-ready version.
 
 # References {.unnumbered}
-
-[Note to self: complete and clean the bibliography before submission, including
-any missing software, package, and methodological references cited in the final
-text.]{color="red"}
 
 ::: {#refs}
 :::

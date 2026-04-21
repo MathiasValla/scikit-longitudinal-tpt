@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -17,6 +18,12 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.tree import _tree, export_text
+
+warnings.filterwarnings(
+    "ignore",
+    message="pkg_resources is deprecated as an API.*",
+    category=UserWarning,
+)
 
 from scikit_longitudinal.estimators.trees import (
     TpTDecisionTreeClassifier,
@@ -57,6 +64,7 @@ class ExampleResult:
     feature_names: list[str]
     gamma_table: pd.DataFrame
     hyperparameters: pd.DataFrame
+    gamma_profile: pd.DataFrame | None = None
     long_preview: pd.DataFrame | None = None
     wide_preview: pd.DataFrame | None = None
     stage_predictions: pd.DataFrame | None = None
@@ -87,26 +95,95 @@ def dataset_summary_table() -> pd.DataFrame:
         [
             {
                 "dataset": "pbcseq",
-                "observational_unit": f"{pbcseq['id'].nunique()} subjects",
-                "temporal_structure": (
-                    f"{len(pbcseq)} visits total; median {int(pbc_visits.median())} "
-                    f"visits per subject; max {int(pbc_visits.max())}"
+                "unit": f"{pbcseq['id'].nunique()} subjects",
+                "waves / visits": (
+                    f"{len(pbcseq)} visits; median {int(pbc_visits.median())} "
+                    f"per subject; max {int(pbc_visits.max())}"
                 ),
                 "predictors_used": ", ".join(PBCSEQ_FEATURES),
                 "target": "binary event by end of follow-up",
             },
             {
                 "dataset": "Produc",
-                "observational_unit": f"{produc['state'].nunique()} states",
-                "temporal_structure": (
-                    f"{int(produc_waves.iloc[0]) + 1} yearly waves in source data; "
-                    f"{int(produc_waves.iloc[0])} history waves after the final-year holdout"
+                "unit": f"{produc['state'].nunique()} states",
+                "waves / visits": (
+                    f"{int(produc_waves.iloc[0]) + 1} annual waves; "
+                    f"{int(produc_waves.iloc[0])} history waves after final-year holdout"
                 ),
                 "predictors_used": ", ".join(PRODUC_FEATURES),
                 "target": "final-year gross state product (final_gsp)",
             },
         ]
     )
+
+
+def metrics_table(metrics: dict[str, Any], *, task: str) -> pd.DataFrame:
+    """Render narrow metric tables suitable for the paper layout."""
+
+    if task == "classification":
+        order = [
+            "train_subjects",
+            "test_subjects",
+            "selected_gamma",
+            "accuracy",
+            "balanced_accuracy",
+            "roc_auc",
+            "tree_total_impurity",
+            "tree_mean_impurity",
+            "tree_depth",
+            "n_nodes",
+        ]
+        labels = {
+            "train_subjects": "Training subjects",
+            "test_subjects": "Test subjects",
+            "selected_gamma": "Selected gamma",
+            "accuracy": "Accuracy",
+            "balanced_accuracy": "Balanced accuracy",
+            "roc_auc": "ROC AUC",
+            "tree_total_impurity": "Tree total impurity",
+            "tree_mean_impurity": "Tree mean impurity",
+            "tree_depth": "Tree depth",
+            "n_nodes": "Number of nodes",
+        }
+    elif task == "regression":
+        order = [
+            "train_subjects",
+            "test_subjects",
+            "selected_gamma",
+            "mae",
+            "r2",
+            "tree_total_impurity",
+            "tree_mean_impurity",
+            "tree_depth",
+            "n_nodes",
+        ]
+        labels = {
+            "train_subjects": "Training states",
+            "test_subjects": "Test states",
+            "selected_gamma": "Selected gamma",
+            "mae": "MAE",
+            "r2": "R²",
+            "tree_total_impurity": "Tree total impurity",
+            "tree_mean_impurity": "Tree mean impurity",
+            "tree_depth": "Tree depth",
+            "n_nodes": "Number of nodes",
+        }
+    else:
+        raise ValueError(f"Unsupported task: {task}")
+
+    def format_value(value: Any) -> str:
+        if isinstance(value, (int, np.integer)):
+            return f"{int(value)}"
+        if isinstance(value, (float, np.floating)):
+            if not np.isfinite(value):
+                return "nan"
+            if abs(float(value)) >= 1000:
+                return f"{float(value):,.3f}"
+            return f"{float(value):.3f}"
+        return str(value)
+
+    rows = [{"metric": labels[key], "value": format_value(metrics[key])} for key in order]
+    return pd.DataFrame(rows)
 
 
 def summarize_tpt_tree(tree_) -> dict[str, float]:
@@ -199,6 +276,21 @@ def deduplicate_gamma_table(table: pd.DataFrame, *, decimals: int = 10) -> pd.Da
     return compressed
 
 
+def compress_regression_gamma_table(table: pd.DataFrame, *, decimals: int = 10) -> pd.DataFrame:
+    """Keep only breakpoints where impurity or selected times change."""
+
+    columns = ["tree_total_impurity", "root_time", "min_split_time", "max_split_time"]
+    compressed = table.copy()
+    for column in columns:
+        compressed[f"_{column}_key"] = compressed[column].round(decimals)
+
+    key_columns = [f"_{column}_key" for column in columns]
+    keep_mask = compressed[key_columns].ne(compressed[key_columns].shift()).any(axis=1)
+    compressed = compressed.loc[keep_mask].copy()
+    compressed = compressed.drop(columns=key_columns).reset_index(drop=True)
+    return compressed
+
+
 def hyperparameter_table(params: dict[str, Any]) -> pd.DataFrame:
     """Render a compact hyperparameter table for the manuscript."""
 
@@ -287,6 +379,7 @@ def run_classification_example(
         train_df[feature_columns],
         train_df["event"],
     )
+    gamma_profile = gamma_table.copy()
     gamma_table = deduplicate_gamma_table(gamma_table)
 
     truth = test_df.groupby("id")["event"].first().rename("observed")
@@ -355,6 +448,7 @@ def run_classification_example(
         model=estimator,
         feature_names=feature_names,
         gamma_table=gamma_table,
+        gamma_profile=gamma_profile,
         hyperparameters=params,
         long_preview=train_df[feature_columns + ["event"]].head(8).reset_index(drop=True),
         wide_preview=None,
@@ -503,7 +597,7 @@ def run_regression_example(
     wide_preview = (
         X_train.assign(subject_id=wide_train.subject_ids, final_gsp=y_train.to_numpy())
         .loc[:, preview_columns]
-        .head(8)
+        .head(5)
         .reset_index(drop=True)
     )
 
@@ -530,10 +624,11 @@ def run_regression_example(
         model=estimator,
         feature_names=feature_names,
         gamma_table=gamma_table,
+        gamma_profile=gamma_table.copy(),
         hyperparameters=params,
         long_preview=(
             train_df[["state", "year", "time_index", "duration", *PRODUC_FEATURES, "final_gsp"]]
-            .head(8)
+            .head(5)
             .reset_index(drop=True)
         ),
         wide_preview=wide_preview,

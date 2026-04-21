@@ -5,11 +5,11 @@ project:
     - README.qmd
 
 title: "Scikit-longitudinal's TpT splitter: growing decision trees along the time dimension of longitudinal data"
-subtitle: "A short software note for Computo"
+subtitle: "A reproducible article for Computo"
 author:
   - name: Mathias Valla
     corresponding: true
-    email: 65603104+MathiasValla@users.noreply.github.com
+    email: mathias.valla@gmail.com
     affiliations:
       - name: Chaire DIALog, Institut Louis Bachelier, Paris, France
   - name: Simon Provost
@@ -19,26 +19,27 @@ author:
 date: last-modified
 date-modified: last-modified
 description: |
-  A short reproducible software note presenting the Time-penalized Trees (TpT)
-  splitter in scikit-longitudinal, with one classification example on the
+  A reproducible article presenting the Time-penalized Trees (TpT) splitter
+  implemented in scikit-longitudinal, with one classification example on the
   primary biliary cirrhosis longitudinal dataset and one regression example on
   the Produc US state production panel.
 abstract: >+
-  We present the Time-penalized Trees (TpT) splitter as exposed in
-  scikit-longitudinal. TpT extends decision-tree split selection to longitudinal
-  settings by penalizing candidate splits that rely on later observation waves.
-  This note focuses on software usage and reproducibility rather than a full
-  methodological treatment. We document the current TpT API in
-  scikit-longitudinal and provide two compact real-data examples: a
-  subject-level classification task on the primary biliary cirrhosis follow-up
-  data and a state-level regression task on the Produc panel data. The
-  accompanying repository contains a frozen Python environment, data preparation
-  scripts, and Quarto sources for the paper.
+  We present the Time-penalized Trees (TpT) splitter as implemented in
+  scikit-longitudinal, a Python package for longitudinal machine learning. TpT
+  extends recursive partitioning to repeated-measures covariates by penalizing
+  candidate splits that rely on later observation waves. We describe the
+  underlying split criterion, summarize the main user-facing parameters, and
+  illustrate the implementation on two public longitudinal datasets: a
+  subject-level classification problem based on the primary biliary cirrhosis
+  follow-up data and a state-level regression problem based on the Produc
+  panel. These examples show how the time penalty affects the selected split
+  times and how the exported trees reveal both which predictors matter and when
+  they matter.
 keywords: [longitudinal data, decision trees, reproducibility, Python, software]
 bibliography: references.bib
 github-user: MathiasValla
 repo: "scikit-longitudinal-tpt"
-draft: true # set to false once the build is running
+draft: false
 published: false # will be set to true once accepted
 license: CC-BY-4.0
 format:
