@@ -1,0 +1,670 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{\textbf{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+% definitions for citeproc citations
+\NewDocumentCommand\citeproctext{}{}
+\NewDocumentCommand\citeproc{mm}{%
+  \begingroup\def\citeproctext{#2}\cite{#1}\endgroup}
+\makeatletter
+ % allow citations to break across lines
+ \let\@cite@ofmt\@firstofone
+ % avoid brackets around text for \cite:
+ \def\@biblabel#1{}
+ \def\@cite#1#2{{#1\if@tempswa , #2\fi}}
+\makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newenvironment{CSLReferences}[2] % #1 hanging-indent, #2 entry-spacing
+ {\begin{list}{}{%
+  \setlength{\itemindent}{0pt}
+  \setlength{\leftmargin}{0pt}
+  \setlength{\parsep}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+   \setlength{\leftmargin}{\cslhangindent}
+   \setlength{\itemindent}{-1\cslhangindent}
+  \fi
+  % set entry spacing
+  \setlength{\itemsep}{#2\baselineskip}}}
+ {\end{list}}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{\hfill\break\parbox[t]{\linewidth}{\strut\ignorespaces#1\strut}}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Scikit-longitudinals TpT splitter: growing decision trees along the time dimension of longitudinal data},
+  pdfauthor={Mathias Valla; Simon Provost},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Scikit-longitudinals TpT splitter: growing decision trees along
+the time dimension of longitudinal data}
+\author{Mathias Valla \and Simon Provost}
+\date{2026-04-22}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}\label{introduction}
+
+\texttt{scikit-longitudinal} extends the \texttt{scikit-learn} ecosystem
+with estimators and workflows tailored to repeated-measures data
+(Provost and Freitas 2025). This article focuses on the Time-penalized
+Trees (TpT) splitter, a decision-tree split rule designed for
+longitudinal covariates (Valla 2024). Rather than reproducing the full
+methodological development, we document the current TpT API in the
+package and provide two compact, fully reproducible real-data examples.
+Beyond the original algorithmic presentation, a recent theoretical
+analysis shows that TpT is a consistent estimator along a non-empty set
+of observation times under explicit structural assumptions (Valla and
+Milhaud 2026).
+
+Tree-based methods for longitudinal or clustered data already span
+several families. Model-based recursive partitioning and generalized
+linear model trees target subgroup structure through
+parameter-instability ideas (Zeileis, Hothorn, and Hornik 2008; Seibold,
+Hothorn, and Zeileis 2019). RE-EM trees and mixed-effects random forests
+incorporate random effects to account for within-subject or
+within-cluster dependence (Sela and Simonoff 2012; Hajjem, Bellavance,
+and Larocque 2014). Survival-tree extensions such as LTRC trees can also
+accommodate time-varying covariates in censored settings (Fu and
+Simonoff 2017). TpT occupies a narrower but complementary niche: it
+keeps a CART-style impurity objective and modifies the split-selection
+criterion through an explicit time penalty, making the fitted tree
+directly readable in terms of both predictor and wave (Valla 2024).
+
+The repository is structured as required by Computo (Computo Team 2020):
+the paper is written in Quarto, the environment is frozen in
+\texttt{environment.yml}, and the data preparation and analysis code are
+kept alongside the manuscript.
+
+\section{\texorpdfstring{The TpT splitter in
+\texttt{scikit-longitudinal}}{The TpT splitter in scikit-longitudinal}}\label{the-tpt-splitter-in-scikit-longitudinal}
+
+Recursive partitioning grows a tree by repeatedly splitting a parent
+node into child nodes that are more homogeneous with respect to the
+target variable. In other words, each split is chosen to reduce
+within-node heterogeneity, or equivalently to maximize the loss of
+impurity from the parent node to its children (Breiman et al. 1984).
+
+For a classification node \(g\), let \(p_k(g)\) denote the proportion of
+class \(k \in \{1, \ldots, K\}\) inside the node. An impurity measure
+should be nonnegative, equal to \(0\) when the node is pure, maximal at
+the uniform class distribution, and symmetric in the class labels. Two
+standard choices are the entropy
+
+\[
+I_{\text{Ent}}(g) = -\sum_{k=1}^{K} p_k(g)\log p_k(g)
+\]
+
+and the Gini impurity
+
+\[
+I_{\text{Gini}}(g) = \sum_{k=1}^{K} p_k(g)\left(1 - p_k(g)\right)
+= 1 - \sum_{k=1}^{K} p_k(g)^2.
+\]
+
+For regression, CART typically uses the node mean squared error
+
+\[
+I_{\text{MSE}}(g) = \frac{1}{N(g)}
+\sum_{i: x^{(i)} \in g} \left(y^{(i)} - \bar y_g\right)^2,
+\]
+
+where \(\bar y_g\) is the empirical mean response in node \(g\). If a
+parent node \(g_p\) is split into left and right child nodes \(g_l\) and
+\(g_r\), the usual CART goodness-of-split is the impurity decrease
+
+\[
+\Delta I(g_p; g_l, g_r) =
+I(g_p) -
+\left[
+\frac{N(g_l)}{N(g_p)} I(g_l) +
+\frac{N(g_r)}{N(g_p)} I(g_r)
+\right],
+\]
+
+with \(I(g)\) standing for one of the classification impurities above,
+or for the MSE in regression.
+
+At a tree node associated with parent time index \(t_p\), TpT modifies
+this criterion and scores a candidate split at time \(t_c\) by
+multiplying the usual impurity improvement \(\Delta I\) by an
+exponential time penalty:
+
+\[
+G_{\gamma} = \Delta I \exp \left[-\gamma (t_c - t_p)\right].
+\]
+
+The hyperparameter \(\gamma \ge 0\) controls how strongly later
+measurements are penalized. When \(\gamma = 0\), TpT reduces to ordinary
+impurity-based split selection. As \(\gamma\) increases, the tree
+becomes more reluctant to use later waves unless they bring a clearly
+stronger impurity reduction.
+
+From a user perspective, the main entry points are
+\texttt{TpTDecisionTreeClassifier} and
+\texttt{TpTDecisionTreeRegressor}. Both can consume LONG-format data
+directly by specifying an identifier column, an observation-time column
+and a subject-specific duration column.
+
+The same splitter can also be reached from an explicit wide matrix
+together with \texttt{features\_group} metadata. We use both entry
+points below: the \texttt{pbcseq} example illustrates direct long-format
+fitting, while the \texttt{Produc} example makes the long-to-wide
+conversion explicit.
+
+For this article, we select \(\gamma\) on a small candidate grid by
+minimizing the fitted tree's weighted total leaf impurity on the
+training split. This is a pragmatic paper-specific heuristic whose only
+goal is to keep the examples deterministic and easy to rerun; it should
+not yet be interpreted as a recommended general tuning rule for applied
+work.
+
+\subsection{A compact theoretical
+guarantee}\label{a-compact-theoretical-guarantee}
+
+TpT is not only a practical heuristic. In Valla and Milhaud (2026), the
+analysis focuses on record-high times, that is, feasible times whose
+penalized population envelope dominates all later competitors. The main
+result requires separated penalized-envelope gaps (Assumption A1),
+finite-sample attainability of the corresponding envelope peaks
+(Assumption A2), the TpT-\(\alpha\) branch-growing rule, and the
+regularity and noise assumptions needed to invoke the Klusowski-Tian
+oracle inequality for depth-\(K\) CART estimators (Klusowski and Tian
+2024).
+
+\textbf{Theorem 1 Valla and Milhaud (2026).} Assume (A1)--(A2), the
+TpT-\(\alpha\) growing rule, and the regularity and noise conditions
+required to apply the Klusowski-Tian oracle inequality for depth-\(K\)
+CART estimators. For every fixed record-high time \(t_k\) such that the
+approximation bias vanishes as \(K(t_k) \to \infty\), the estimator
+fitted on the realized \(t_k\)-subtree satisfies
+
+\[
+\mathbb{E}\!\left[\left\lVert \hat f_{t_k, K(t_k)} - f_{t_k}^{\star} \right\rVert^2_{L^2(P_{X(t_k)})}\right]
+\longrightarrow 0
+\qquad \text{as } n \to \infty.
+\]
+
+This is intentionally narrower than a blanket consistency claim over all
+time indices. The result identifies a non-empty sequence of times at
+which the penalized TpT rule recovers a consistent subtree estimator. We
+include this result only to summarize the current theoretical status of
+TpT; the paper itself remains focused on software usage. For an
+implementation-focused article, the practical takeaway is that the TpT
+framework underlying the splitter now has a precise asymptotic analysis,
+even though the present package implementation is discussed here from an
+operational rather than theorem-verification standpoint.
+
+\subsection{Current scope}\label{current-scope}
+
+The present implementation is suitable for compact reproducible examples
+and software-oriented demonstrations. Missing-value routing inside the
+Cython TpT splitter is still treated as future work, and monotonic
+constraints are explicitly disabled for TpT at the wrapper level.
+
+\section{Reproducible setup}\label{reproducible-setup}
+
+The repository contains:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{scripts/prepare\_example\_data.py} to download and preprocess
+  the open datasets;
+\item
+  \texttt{analysis/tpt\_examples.py} with helper functions used by the
+  paper;
+\item
+  \texttt{environment.yml} with a frozen Python environment.
+\end{itemize}
+
+The quick-start installation shown below is the user-facing entry point.
+Exact reproduction of this paper instead relies on
+\texttt{environment.yml}, which fixes Python 3.11, the released
+\texttt{scikit-lexicographical-trees==0.0.5}, and the
+\texttt{scikit-longitudinal} commit used for the TpT wrapper/API state
+documented here. The helper script \texttt{setup-render-ci.sh} ensures
+that Quarto renders against the extended tree backend required by the
+TpT examples.
+
+\section{Install, quick start, and main
+parameters}\label{install-quick-start-and-main-parameters}
+
+The official \texttt{scikit-longitudinal} getting-started guide is
+intentionally lightweight, and the same philosophy fits this article
+well. For a standard Python environment, the minimal installation is:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{pip}\NormalTok{ install scikit{-}longitudinal}
+\end{Highlighting}
+\end{Shaded}
+
+For LONG-format data, the shortest end-to-end TpT workflow is to pass a
+subject identifier, an observation-time column, a subject-level duration
+column, and the names of the longitudinal predictors:
+
+The small set of parameters that matters most in practice is summarized
+in (\textbf{tbl-tpt-main-parameters?}).
+
+\phantomsection\label{tbl-tpt-main-parameters}
+
+When the data are already stored in wave-separated columns, or when TpT
+is used inside a broader \texttt{scikit-longitudinal} workflow, the
+package documentation recommends the same building blocks as the rest of
+the library: a \texttt{LongitudinalPipeline}, a time-aware preprocessing
+step such as \texttt{MerWavTimePlus}, and a final estimator. A minimal
+pipeline skeleton is:
+
+This article keeps the examples at the estimator level, but the API is
+compatible with these larger package workflows. In particular, the two
+examples below are meant to bridge the package documentation and
+practical usage: \texttt{pbcseq} uses the long-format wrapper directly,
+whereas \texttt{Produc} shows the explicit conversion and the low-level
+\texttt{features\_group} interface.
+
+\section{Data sets}\label{data-sets}
+
+The two examples use small public repeated-measures datasets with
+complementary temporal structures, summarized in
+(\textbf{tbl-dataset-summary?}). We cite \texttt{scikit-longitudinal}
+through its JOSS software paper (Provost and Freitas 2025). The
+\texttt{pbcseq} data contain follow-up laboratory measurements for the
+randomized Mayo Clinic primary biliary cirrhosis trial, with visits
+planned at 6 months, 1 year, and yearly thereafter (Therneau, Terry
+2025). The \texttt{Produc} data form a balanced annual panel of 48 US
+states from 1970 to 1986 (Munnell, Alicia H. 2025). Together they
+provide two deliberately different views of TpT: a subject-level
+clinical classification problem with irregular follow-up, and a compact
+multi-wave regression panel where the effect of \(\gamma\) on selected
+split times is easy to inspect.
+
+\phantomsection\label{tbl-dataset-summary}
+
+\section{\texorpdfstring{Example 1: Subject-level classification on
+\texttt{pbcseq}}{Example 1: Subject-level classification on pbcseq}}\label{example-1-subject-level-classification-on-pbcseq}
+
+Our classification example uses \texttt{pbcseq}, the sequential primary
+biliary cirrhosis follow-up data distributed with the \texttt{survival}
+package (Therneau, Terry 2025). We keep four complete longitudinal
+biomarkers (\texttt{bili}, \texttt{albumin}, \texttt{protime},
+\texttt{ast}), use \texttt{day} as the observation-time variable,
+\texttt{futime} as the subject-specific horizon, and define a binary
+target equal to one when the subject experiences either transplantation
+or death by the end of follow-up. In the processed version used here,
+this yields 312 subjects, 1,945 recorded visits, and a median of 5
+visits per subject ((\textbf{tbl-dataset-summary?})).
+
+The example is run on a subject-level train/test split, with the
+long-format API of \texttt{TpTDecisionTreeClassifier}. The minimal
+fit/predict workflow is:
+
+\phantomsection\label{tbl-pbcseq-metrics}
+
+We also report the small hyperparameter set used for this preliminary
+example.
+
+\phantomsection\label{tbl-pbcseq-hyperparameters}
+
+The selected gamma comes from the training-grid search shown in
+(\textbf{tbl-pbcseq-gamma-search?}) and visualized in
+(\textbf{fig-pbcseq-gamma-profile?}).
+
+\phantomsection\label{tbl-pbcseq-gamma-search}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-pbcseq-gamma-profile-output-1.pdf}}
+\caption{Lower-envelope training tree-total-impurity profile for the
+pbcseq classification example, extracted from the full 0.001 gamma grid
+by keeping the local minima of the oscillating
+path.}\label{fig-pbcseq-gamma-profile}
+\end{figure}
+
+The resulting subject-level metrics are shown in
+(\textbf{tbl-pbcseq-metrics?}). A small preview of the held-out
+predictions is given in (\textbf{tbl-pbcseq-predictions?}). With this
+finer gamma grid, the same depth-3, \texttt{min\_samples\_leaf=10}
+configuration selects \texttt{gamma\ =\ 0.184} and still uses later
+history: the learned tree splits at waves 2, 3, 4, and 7 rather than
+collapsing to baseline-only rules. This is the behavior we want to
+expose in the article: the time penalty regularizes the use of history
+without erasing it when later measurements still provide a clearly
+better impurity reduction.
+
+\phantomsection\label{tbl-pbcseq-predictions}
+
+The fitted tree is displayed below with the dedicated
+\texttt{plot\_tree} exporter, using the wide feature names built
+internally by the TpT preprocessing step.
+
+\clearpage
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-pbcseq-tree-output-1.pdf}}
+\caption{Selected TpT classification tree on pbcseq, displayed with the
+dedicated plot\_tree exporter.}\label{fig-pbcseq-tree}
+\end{figure}
+
+This is precisely the kind of output we want in this article: the fitted
+tree shows explicitly which wave-specific biomarkers were selected by
+TpT, while the calling interface remains close to ordinary
+\texttt{scikit-learn} usage. The node labels make the classifier
+interpretable in both dimensions at once: which biomarker matters, and
+at which follow-up wave it becomes decisive for the split. In this run,
+the selected nonzero gamma still preserves several later visits:
+bilirubin enters at waves 2 and 4, albumin at waves 3 and 4, prothrombin
+time at wave 7, and AST at wave 3.
+
+\section{\texorpdfstring{Example 2: State-level regression on
+\texttt{Produc}}{Example 2: State-level regression on Produc}}\label{example-2-state-level-regression-on-produc}
+
+Our regression example uses \texttt{Produc}, a public US state
+production panel available through Rdatasets (Munnell, Alicia H. 2025).
+The source data contain 48 states followed yearly from 1970 to 1986. We
+keep three longitudinal predictors available at each wave: private
+capital stock (\texttt{pc}), employment (\texttt{emp}), and unemployment
+rate (\texttt{unemp}). For each state, we hold out the final recorded
+gross state product and predict that \texttt{final\_gsp} from the
+preceding 16 yearly observations. We keep \texttt{Produc} deliberately:
+although it is an economic panel rather than an individual-level
+biomedical cohort, its 17 annual waves and three interpretable
+predictors make the effect of the TpT time penalty easy to see in a
+small real dataset. To keep the example readable while still producing a
+nonzero selected gamma and non-baseline splits on the training impurity
+criterion, we use the predictor subset \texttt{pc}, \texttt{emp}, and
+\texttt{unemp} together with a depth-4 tree,
+\texttt{min\_samples\_leaf=1}, and \texttt{min\_samples\_split=2}.
+
+In this example we explicitly use the TpT conversion helper
+\texttt{long\_to\_wide(...)}, then fit the regressor on the resulting
+wide matrix and its \texttt{feature\_groups} metadata. The minimal
+workflow is:
+
+The next two tables show the same training subjects before and after the
+explicit long-to-wide conversion.
+
+\phantomsection\label{tbl-produc-long-preview}
+
+\phantomsection\label{tbl-produc-wide-preview}
+
+\phantomsection\label{tbl-produc-metrics}
+
+\phantomsection\label{tbl-produc-hyperparameters}
+
+\phantomsection\label{tbl-produc-gamma-search}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-produc-gamma-profile-output-1.pdf}}
+\caption{Training tree-total-impurity profile (top) and selected split
+times (bottom) for the Produc regression example on the article grid
+from 0.000 to 0.100 by 0.001.}\label{fig-produc-gamma-profile}
+\end{figure}
+
+\phantomsection\label{tbl-produc-predictions}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-produc-predictions-output-1.pdf}}
+\caption{Observed versus predicted final gross state product in the
+Produc regression example, using the full-history
+inputs.}\label{fig-produc-predictions}
+\end{figure}
+
+The selected regression tree can also be shown directly with the
+dedicated \texttt{plot\_tree} exporter.
+
+On the article grid from \texttt{0.000} to \texttt{0.100} by
+\texttt{0.001}, the selected regression gamma is \texttt{0.011}. The
+corresponding tree still uses later history, with selected split times
+between waves 1 and 5. As gamma increases further on that grid, the tree
+is pulled back toward baseline: the root split moves to wave 0 by about
+\texttt{gamma\ =\ 0.031}, and from about \texttt{gamma\ =\ 0.055} onward
+all selected split times are at baseline. The gamma path therefore shows
+the intended TpT tradeoff quite clearly: modest penalization still
+allows mid-history splits when they materially reduce impurity, whereas
+stronger penalization progressively collapses the tree toward earlier
+waves.
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-produc-tree-output-1.pdf}}
+\caption{Selected TpT regression tree on Produc, displayed with the
+dedicated plot\_tree exporter.}\label{fig-produc-tree}
+\end{figure}
+
+This makes the regression example a useful complement to
+\texttt{pbcseq}: the exported tree tells us not only which economic
+predictor matters, but also whether it matters near the beginning of the
+panel or later in the observed trajectory. In the selected tree, the
+root decision already depends on employment at wave 1, while deeper
+refinements still use later information through private capital at wave
+2 and employment again at wave 5.
+
+\section{Discussion}\label{discussion}
+
+These two examples are intentionally small. Their role is not to provide
+a full benchmarking study, but to document a reproducible and
+inspectable usage path for TpT within \texttt{scikit-longitudinal}.
+Together they show that TpT can be fit either directly from LONG-format
+data or from an explicit wide matrix, tuned with a simple deterministic
+gamma heuristic for demonstration purposes, and exported as readable
+wave-indexed trees.
+
+Most importantly for this article, the exported trees show both what
+matters and when it matters. In \texttt{pbcseq}, the classifier can
+isolate clinically meaningful biomarker thresholds at specific follow-up
+waves rather than collapsing the history into a single summary. In
+\texttt{Produc}, the regression tree reveals whether private capital,
+employment, or unemployment becomes informative early or later in the
+state-level trajectory. This predictor-plus-wave readability is the main
+practical property we wanted to make visible.
+
+The paper also has clear limits. We deliberately keep the methodological
+discussion short, we do not attempt a large comparative benchmark, and
+the gamma-selection rule used here is only a reproducible placeholder
+rather than a definitive model-selection recommendation. On the software
+side, missing-value routing inside the Cython TpT splitter is still
+future work.
+
+Natural next steps are equally clear: implement survival-specific
+evaluation metrics, add richer visualization utilities such as
+subject-level trajectory displays inside the fitted tree, build ensemble
+methods on top of the current splitter, and generalize the time penalty
+so that prior temporal structure such as lagged predictor effects can be
+encoded directly. Because TpT is now integrated into the tree-building
+backend, these extensions are largely a question of design and
+validation rather than reimplementing the core split rule from scratch.
+
+Within that scope, TpT already has the ingredients of a useful
+\texttt{scikit-longitudinal} contribution: a lightweight API,
+interpretable exported trees, and a growing theoretical foundation.
+
+\section{Acknowledgements}\label{acknowledgements}
+
+Work(s) conducted within the Research Chair DIALog under the aegis of
+the Risk Foundation, a joint initiative by Université Paris-Dauphine PSL
+and CNP Assurances.
+
+Additional acknowledgements for Simon Provost can be added in the
+submission-ready version.
+
+\section*{References}\label{references}
+\addcontentsline{toc}{section}{References}
+
+\phantomsection\label{refs}
+\begin{CSLReferences}{1}{0}
+\bibitem[\citeproctext]{ref-breiman1984cart}
+Breiman, Leo, Jerome H. Friedman, Richard A. Olshen, and Charles J.
+Stone. 1984. \emph{Classification and Regression Trees}. Wadsworth
+International Group.
+
+\bibitem[\citeproctext]{ref-computo}
+Computo Team. 2020. {``Computo: Reproducible Computational/Algorithmic
+Contributions in Statistics and Machine Learning.''}
+
+\bibitem[\citeproctext]{ref-fu2017ltrc}
+Fu, Wei, and Jeffrey S. Simonoff. 2017. {``Survival Trees for
+Left-Truncated and Right-Censored Data, with Application to Time-Varying
+Covariate Data.''} \emph{Biostatistics} 18 (2): 352--69.
+\url{https://doi.org/10.1093/biostatistics/kxw047}.
+
+\bibitem[\citeproctext]{ref-hajjem2014merf}
+Hajjem, Ahlem, François Bellavance, and Denis Larocque. 2014.
+{``Mixed-Effects Random Forest for Clustered Data.''} \emph{Journal of
+Statistical Computation and Simulation} 84 (6): 1313--28.
+\url{https://doi.org/10.1080/00949655.2012.741599}.
+
+\bibitem[\citeproctext]{ref-klusowski2024cart}
+Klusowski, Jason M., and Peter M. Tian. 2024. {``Large Scale Prediction
+with Decision Trees.''} \emph{Journal of the American Statistical
+Association} 119 (545): 525--37.
+\url{https://doi.org/10.1080/01621459.2022.2126782}.
+
+\bibitem[\citeproctext]{ref-dataset-produc}
+Munnell, Alicia H. 2025. {``Produc: US State Production Panel.''}
+\url{https://vincentarelbundock.github.io/Rdatasets/doc/Ecdat/Produc.html}.
+
+\bibitem[\citeproctext]{ref-provost2025sklong}
+Provost, Simon, and Alex A. Freitas. 2025. {``Scikit-Longitudinal: A
+Machine Learning Library for Longitudinal Classification in Python.''}
+\emph{Journal of Open Source Software} 10 (112): 8481.
+\url{https://doi.org/10.21105/joss.08481}.
+
+\bibitem[\citeproctext]{ref-seibold2019glmtrees}
+Seibold, Heidi, Torsten Hothorn, and Achim Zeileis. 2019. {``Generalised
+Linear Model Trees with Global Additive Effects.''} \emph{Advances in
+Data Analysis and Classification} 13 (3): 703--25.
+\url{https://doi.org/10.1007/s11634-018-0342-1}.
+
+\bibitem[\citeproctext]{ref-sela2012reem}
+Sela, Rebecca J., and Jeffrey S. Simonoff. 2012. {``{RE-EM} Trees: A
+Data Mining Approach for Longitudinal and Clustered Data.''}
+\emph{Machine Learning} 86 (2): 169--207.
+\url{https://doi.org/10.1007/s10994-011-5258-3}.
+
+\bibitem[\citeproctext]{ref-dataset-pbcseq}
+Therneau, Terry. 2025. {``Pbcseq: Mayo Clinic Primary Biliary Cirrhosis
+Sequential Data.''} \url{https://rdrr.io/cran/survival/man/pbcseq.html}.
+
+\bibitem[\citeproctext]{ref-valla2024tpt}
+Valla, Mathias. 2024. {``Time-Penalized Trees ({TpT}): Introducing a New
+Tree-Based Data Mining Algorithm for Time-Varying Covariates.''}
+\emph{Annals of Mathematics and Artificial Intelligence} 92: 1609--61.
+\url{https://doi.org/10.1007/s10472-024-09950-w}.
+
+\bibitem[\citeproctext]{ref-valla2026consistency}
+Valla, Mathias, and Xavier Milhaud. 2026. {``Consistent Time-Aware Trees
+for Longitudinal Data: The Time-Penalized Tree.''}
+\url{https://cnrs.hal.science/hal-05022929}.
+
+\bibitem[\citeproctext]{ref-zeileis2008mob}
+Zeileis, Achim, Torsten Hothorn, and Kurt Hornik. 2008. {``Model-Based
+Recursive Partitioning.''} \emph{Journal of Computational and Graphical
+Statistics} 17 (2): 492--514.
+\url{https://doi.org/10.1198/106186008X319331}.
+
+\end{CSLReferences}
+
+\end{document}
