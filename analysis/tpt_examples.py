@@ -16,7 +16,7 @@ from sklearn.metrics import (
     r2_score,
     roc_auc_score,
 )
-from sklearn.model_selection import GroupShuffleSplit
+from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.tree import _tree, export_text
 
 warnings.filterwarnings(
@@ -25,11 +25,11 @@ warnings.filterwarnings(
     category=UserWarning,
 )
 
+from scikit_longitudinal.data_preparation import LongitudinalDataset
 from scikit_longitudinal.estimators.trees import (
     TpTDecisionTreeClassifier,
     TpTDecisionTreeRegressor,
 )
-from scikit_longitudinal.estimators.trees.TpT._preprocessing import long_to_wide
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +40,7 @@ PRODUC_PATH = DATA_DIR / "produc_regression_long.csv"
 
 PBCSEQ_FEATURES = ["bili", "albumin", "protime", "ast"]
 PRODUC_FEATURES = ["pc", "emp", "unemp"]
+PBCSEQ_N_VISITS = 5
 
 
 def gamma_grid(max_gamma: float, step: float = 0.005) -> tuple[float, ...]:
@@ -82,11 +83,48 @@ def load_produc_regression_data() -> pd.DataFrame:
     return pd.read_csv(PRODUC_PATH)
 
 
+def build_pbcseq_visit_order_cohort(*, n_visits: int = PBCSEQ_N_VISITS) -> pd.DataFrame:
+    """Build a dense pbcseq cohort using the first visit-order waves per subject."""
+
+    df = load_pbcseq_classification_data().sort_values(["id", "day"], kind="mergesort").copy()
+    df["visit_index"] = df.groupby("id").cumcount()
+
+    counts = df.groupby("id").size()
+    keep_ids = counts[counts >= n_visits].index
+
+    cohort = df[df["id"].isin(keep_ids) & df["visit_index"].lt(n_visits)].copy()
+    cohort = cohort.sort_values(["id", "visit_index"], kind="mergesort").reset_index(drop=True)
+    return cohort
+
+
+def long_to_wide_frame(
+    frame: pd.DataFrame,
+    *,
+    id_col: str,
+    time_col: str,
+    longitudinal_columns: list[str],
+    static_columns: list[str] | None = None,
+    wave_format: str = "{feature}_t{wave}",
+) -> tuple[pd.DataFrame, list[list[int]], list[int]]:
+    """Reshape a long dataframe with the public LongitudinalDataset API."""
+
+    static_columns = static_columns or []
+    keep_columns = [id_col, time_col, *static_columns, *longitudinal_columns]
+    dataset = LongitudinalDataset(file_path=None, data_frame=frame.loc[:, keep_columns].copy())
+    wide = dataset.to_wide(
+        id_col=id_col,
+        time_col=time_col,
+        longitudinal_columns=longitudinal_columns,
+        static_columns=static_columns,
+        wave_format=wave_format,
+    )
+    return wide, dataset.feature_groups(), dataset.non_longitudinal_features()
+
+
 def dataset_summary_table() -> pd.DataFrame:
     """Return a compact summary of the datasets used in the manuscript."""
 
-    pbcseq = load_pbcseq_classification_data()
-    pbc_visits = pbcseq.groupby("id").size()
+    pbcseq = build_pbcseq_visit_order_cohort()
 
     produc = load_produc_regression_data()
     produc_waves = produc.groupby("state")["time_index"].nunique()
@@ -96,22 +134,16 @@ def dataset_summary_table() -> pd.DataFrame:
             {
                 "dataset": "pbcseq",
                 "unit": f"{pbcseq['id'].nunique()} subjects",
-                "waves / visits": (
-                    f"{len(pbcseq)} visits; median {int(pbc_visits.median())} "
-                    f"per subject; max {int(pbc_visits.max())}"
-                ),
-                "predictors_used": ", ".join(PBCSEQ_FEATURES),
-                "target": "binary event by end of follow-up",
+                "waves": f"{PBCSEQ_N_VISITS} visit-order waves",
+                "predictors": ", ".join(PBCSEQ_FEATURES),
+                "target": "end-of-follow-up event",
             },
             {
                 "dataset": "Produc",
                 "unit": f"{produc['state'].nunique()} states",
-                "waves / visits": (
-                    f"{int(produc_waves.iloc[0]) + 1} annual waves; "
-                    f"{int(produc_waves.iloc[0])} history waves after final-year holdout"
-                ),
-                "predictors_used": ", ".join(PRODUC_FEATURES),
-                "target": "final-year gross state product (final_gsp)",
+                "waves": f"{int(produc_waves.iloc[0]) + 1} annual waves",
+                "predictors": ", ".join(PRODUC_FEATURES),
+                "target": "held-out final-year GSP",
             },
         ]
     )
@@ -347,49 +379,71 @@ def run_classification_example(
 ) -> ExampleResult:
     """Fit and evaluate the pbcseq classification example."""
 
-    df = load_pbcseq_classification_data()
-    splitter = GroupShuffleSplit(
-        n_splits=1,
+    df = build_pbcseq_visit_order_cohort()
+
+    subject_targets = df.groupby("id")["event"].first()
+    train_subjects, test_subjects = train_test_split(
+        subject_targets.index.to_numpy(),
         test_size=test_size,
         random_state=random_state,
+        stratify=subject_targets.to_numpy(),
     )
-    train_idx, test_idx = next(splitter.split(df, groups=df["id"]))
-    train_df = df.iloc[train_idx].copy().reset_index(drop=True)
-    test_df = df.iloc[test_idx].copy().reset_index(drop=True)
 
-    feature_columns = ["id", "day", "futime", *PBCSEQ_FEATURES]
+    train_df = (
+        df[df["id"].isin(train_subjects)]
+        .copy()
+        .sort_values(["id", "visit_index"], kind="mergesort")
+        .reset_index(drop=True)
+    )
+    test_df = (
+        df[df["id"].isin(test_subjects)]
+        .copy()
+        .sort_values(["id", "visit_index"], kind="mergesort")
+        .reset_index(drop=True)
+    )
+
+    X_train, feature_groups, _ = long_to_wide_frame(
+        train_df,
+        id_col="id",
+        time_col="visit_index",
+        longitudinal_columns=PBCSEQ_FEATURES,
+    )
+    X_test, _, _ = long_to_wide_frame(
+        test_df,
+        id_col="id",
+        time_col="visit_index",
+        longitudinal_columns=PBCSEQ_FEATURES,
+    )
+    y_train = train_df.groupby("id")["event"].first().loc[X_train.index]
+    y_test = test_df.groupby("id")["event"].first().loc[X_test.index]
 
     def build_estimator(gamma: float) -> TpTDecisionTreeClassifier:
         return TpTDecisionTreeClassifier(
             gamma=gamma,
-            max_depth=3,
+            criterion="entropy",
+            max_depth=2,
             min_samples_leaf=10,
             random_state=random_state,
-            assume_long_format=True,
-            id_col="id",
-            time_col="day",
-            duration_col="futime",
-            time_step=365.0,
-            long_feature_columns=PBCSEQ_FEATURES,
+            features_group=feature_groups,
         )
 
     best_gamma, estimator, gamma_table = select_gamma_by_tree_total_impurity(
         gamma_grid,
         build_estimator,
-        train_df[feature_columns],
-        train_df["event"],
+        X_train,
+        y_train.to_numpy(),
     )
     gamma_profile = gamma_table.copy()
     gamma_table = deduplicate_gamma_table(gamma_table)
 
-    truth = test_df.groupby("id")["event"].first().rename("observed")
+    truth = y_test.rename("observed")
     pred = pd.Series(
-        estimator.predict(test_df[feature_columns]),
+        estimator.predict(X_test),
         index=truth.index,
         name="predicted",
     )
     proba = pd.Series(
-        estimator.predict_proba(test_df[feature_columns])[:, 1],
+        estimator.predict_proba(X_test)[:, 1],
         index=truth.index,
         name="predicted_probability",
     )
@@ -420,23 +474,23 @@ def run_classification_example(
         .sort_values("predicted_probability", ascending=False, kind="mergesort")
     )
 
-    feature_names = list(estimator._wide_feature_names_)
+    feature_names = list(X_train.columns)
     tree_text = export_text(
         estimator,
         feature_names=feature_names,
         decimals=2,
-        max_depth=3,
+        max_depth=2,
     )
 
     params = hyperparameter_table(
         {
-            "input_format": "long",
-            "criterion": "gini",
+            "input_format": "wide after LongitudinalDataset.to_wide",
+            "preprocessing": f"subjects with at least {PBCSEQ_N_VISITS} visits; keep first {PBCSEQ_N_VISITS} visit-order waves",
+            "criterion": "entropy",
             "candidate_gammas": f"{gamma_grid[0]:.3f} to {gamma_grid[-1]:.3f} by 0.001",
             "selected_gamma": best_gamma,
-            "max_depth": 3,
+            "max_depth": 2,
             "min_samples_leaf": 10,
-            "time_step_days": 365.0,
             "selection_rule": "minimize training tree_total_impurity on a 0.001 grid",
         }
     )
@@ -450,8 +504,10 @@ def run_classification_example(
         gamma_table=gamma_table,
         gamma_profile=gamma_profile,
         hyperparameters=params,
-        long_preview=train_df[feature_columns + ["event"]].head(8).reset_index(drop=True),
-        wide_preview=None,
+        long_preview=train_df[["id", "day", "visit_index", *PBCSEQ_FEATURES, "event"]]
+        .head(8)
+        .reset_index(drop=True),
+        wide_preview=X_train.reset_index().head(5).reset_index(drop=True),
     )
 
 
@@ -476,35 +532,24 @@ def run_regression_example(
     train_df = df.iloc[train_idx].copy().reset_index(drop=True)
     test_df = df.iloc[test_idx].copy().reset_index(drop=True)
 
-    long_columns = ["state", "time_index", "duration", *PRODUC_FEATURES]
-
-    wide_train = long_to_wide(
-        train_df[long_columns],
+    X_train, feature_groups, _ = long_to_wide_frame(
+        train_df,
         id_col="state",
         time_col="time_index",
-        duration_col="duration",
-        time_step=1.0,
-        feature_columns=PRODUC_FEATURES,
-        target=train_df["final_gsp"],
+        longitudinal_columns=PRODUC_FEATURES,
     )
-    wide_test = long_to_wide(
-        test_df[long_columns],
+    X_test, _, _ = long_to_wide_frame(
+        test_df,
         id_col="state",
         time_col="time_index",
-        duration_col="duration",
-        time_step=1.0,
-        feature_columns=PRODUC_FEATURES,
-        target=test_df["final_gsp"],
+        longitudinal_columns=PRODUC_FEATURES,
     )
-
-    X_train = pd.DataFrame(wide_train.X, columns=wide_train.feature_names)
-    X_test = pd.DataFrame(wide_test.X, columns=wide_test.feature_names)
-    y_train = pd.Series(wide_train.y, index=wide_train.subject_ids, name="final_gsp")
-    y_test = pd.Series(wide_test.y, index=wide_test.subject_ids, name="observed")
+    y_train = train_df.groupby("state")["final_gsp"].first().loc[X_train.index].rename("final_gsp")
+    y_test = test_df.groupby("state")["final_gsp"].first().loc[X_test.index].rename("observed")
 
     fitted_models: dict[float, TpTDecisionTreeRegressor] = {}
     gamma_records: list[dict[str, Any]] = []
-    feature_names = list(wide_train.feature_names)
+    feature_names = list(X_train.columns)
 
     for gamma in gamma_grid:
         estimator = TpTDecisionTreeRegressor(
@@ -514,7 +559,7 @@ def run_regression_example(
             min_samples_leaf=min_samples_leaf,
             min_samples_split=min_samples_split,
             random_state=random_state,
-            features_group=wide_train.feature_groups,
+            features_group=feature_groups,
         )
         estimator.fit(X_train, y_train.to_numpy())
         fitted_models[float(gamma)] = estimator
@@ -595,7 +640,7 @@ def run_regression_example(
         "final_gsp",
     ]
     wide_preview = (
-        X_train.assign(subject_id=wide_train.subject_ids, final_gsp=y_train.to_numpy())
+        X_train.assign(subject_id=X_train.index, final_gsp=y_train.to_numpy())
         .loc[:, preview_columns]
         .head(5)
         .reset_index(drop=True)
@@ -603,14 +648,13 @@ def run_regression_example(
 
     params = hyperparameter_table(
         {
-            "input_format": "wide (after explicit long_to_wide conversion)",
+            "input_format": "wide after LongitudinalDataset.to_wide",
             "criterion": "squared_error (MSE)",
             "candidate_gammas": f"{gamma_grid[0]:.3f} to {gamma_grid[-1]:.3f} by 0.001",
             "selected_gamma": best_gamma,
             "max_depth": max_depth,
             "min_samples_leaf": min_samples_leaf,
             "min_samples_split": min_samples_split,
-            "time_step_years": 1.0,
             "longitudinal_predictors": ", ".join(PRODUC_FEATURES),
             "target": "final_gsp at the held-out final year",
             "selection_rule": "minimize training tree_total_impurity on a 0.001 grid",

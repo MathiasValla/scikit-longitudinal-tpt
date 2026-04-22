@@ -74,6 +74,16 @@
 \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
 \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
 \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
 \usepackage{graphicx}
 \makeatletter
 \newsavebox\pandoc@box
@@ -129,32 +139,48 @@
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \urlstyle{same}
 \hypersetup{
-  pdftitle={Scikit-longitudinals TpT splitter: growing decision trees along the time dimension of longitudinal data},
-  pdfauthor={Mathias Valla; Simon Provost},
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
 
-\title{Scikit-longitudinals TpT splitter: growing decision trees along
-the time dimension of longitudinal data}
-\author{Mathias Valla \and Simon Provost}
-\date{2026-04-22}
+\author{}
+\date{}
 
 \begin{document}
-\maketitle
 
 \section{Introduction}\label{introduction}
 
-\texttt{scikit-longitudinal} extends the \texttt{scikit-learn} ecosystem
-with estimators and workflows tailored to repeated-measures data
-(Provost and Freitas 2025). This article focuses on the Time-penalized
-Trees (TpT) splitter, a decision-tree split rule designed for
-longitudinal covariates (Valla 2024). Rather than reproducing the full
-methodological development, we document the current TpT API in the
-package and provide two compact, fully reproducible real-data examples.
-Beyond the original algorithmic presentation, a recent theoretical
-analysis shows that TpT is a consistent estimator along a non-empty set
-of observation times under explicit structural assumptions (Valla and
-Milhaud 2026).
+Longitudinal data, characterised by repeated measurements of the same
+variables over successive time points (referred to as \emph{waves}), are
+common in medicine, economics, and the social sciences. Unlike ordinary
+tabular data, they carry a temporal structure across repeated
+measurements of the same covariate, and that structure is easily lost
+under standard preprocessing. \texttt{scikit-longitudinal}
+(\texttt{Sklong}) is an open-source Python library that addresses these
+challenges by providing tools for machine learning on longitudinal data
+while remaining close to the familiar \texttt{scikit-learn} ecosystem
+(Provost and Freitas 2025).
+
+This article introduces the Time-penalized Trees (TpT) (Valla 2024), a
+recent primitive of \texttt{Sklong} that adds a new
+longitudinal-data-aware decision-tree splitter to the library. It
+extends standard split selection to longitudinal data by penalizing
+candidate splits placed at later observation waves, allowing earlier
+measurements to be preferred when impurity reduction is comparable.
+
+Instead of reproducing the full methodological development of TpT (Valla
+2024), we focus on the software side of the contribution, structured as
+follows. We first present the TpT split criterion in \texttt{Sklong} and
+briefly recap a recent theoretical analysis showing that TpT is a
+consistent estimator across a non-empty set of observation times under
+explicit structural assumptions (Valla and Milhaud 2026). Second, we
+describe the reproducible setup adopted throughout the paper, including
+the Python environment and the data preparation pipeline. Third, we
+document the TpT Application Programming Interface (API), walking
+through installation, reshaping, and the main hyperparameters. We then
+present two computational examples on public longitudinal datasets, one
+classification and one regression, to illustrate the splitter's
+behaviour. We conclude with a short discussion of the splitter's current
+scope and limitations, and of directions for future work.
 
 Tree-based methods for longitudinal or clustered data already span
 several families. Model-based recursive partitioning and generalized
@@ -165,10 +191,14 @@ incorporate random effects to account for within-subject or
 within-cluster dependence (Sela and Simonoff 2012; Hajjem, Bellavance,
 and Larocque 2014). Survival-tree extensions such as LTRC trees can also
 accommodate time-varying covariates in censored settings (Fu and
-Simonoff 2017). TpT occupies a narrower but complementary niche: it
-keeps a CART-style impurity objective and modifies the split-selection
-criterion through an explicit time penalty, making the fitted tree
-directly readable in terms of both predictor and wave (Valla 2024).
+Simonoff 2017). Closer to TpT, lexicographic optimisation approaches to
+longitudinal decision-tree classifiers keep the standard split score and
+break ties in favour of more recent features, yielding models that lean
+on later waves (Ribeiro and Freitas 2024). TpT occupies a complementary
+niche: it keeps the CART impurity objective itself and modifies the
+split-selection criterion through an explicit time penalty, making the
+fitted tree directly readable in terms of both predictor and wave (Valla
+2024).
 
 The repository is structured as required by Computo (Computo Team 2020):
 the paper is written in Quarto, the environment is frozen in
@@ -241,15 +271,15 @@ stronger impurity reduction.
 
 From a user perspective, the main entry points are
 \texttt{TpTDecisionTreeClassifier} and
-\texttt{TpTDecisionTreeRegressor}. Both can consume LONG-format data
-directly by specifying an identifier column, an observation-time column
-and a subject-specific duration column.
-
-The same splitter can also be reached from an explicit wide matrix
-together with \texttt{features\_group} metadata. We use both entry
-points below: the \texttt{pbcseq} example illustrates direct long-format
-fitting, while the \texttt{Produc} example makes the long-to-wide
-conversion explicit.
+\texttt{TpTDecisionTreeRegressor}. Both estimators operate on
+wide-format data together with \texttt{features\_group} metadata that
+encodes which columns belong to the same longitudinal feature across
+waves. Long-format data must therefore be converted to wide-format
+beforehand, which is handled in \texttt{Sklong} by the public
+\texttt{LongitudinalDataset.to\_wide} API
+(\href{https://scikit-longitudinal.readthedocs.io/latest/API/data_preparation/longitudinal_dataset/}{documentation};
+\href{https://scikit-longitudinal.readthedocs.io/latest/tutorials/long_wide_reshape/}{tutorial}).
+We use this official reshape path in both examples below.
 
 For this article, we select \(\gamma\) on a small candidate grid by
 minimizing the fitted tree's weighted total leaf impurity on the
@@ -319,12 +349,11 @@ The repository contains:
 
 The quick-start installation shown below is the user-facing entry point.
 Exact reproduction of this paper instead relies on
-\texttt{environment.yml}, which fixes Python 3.11, the released
-\texttt{scikit-lexicographical-trees==0.0.5}, and the
-\texttt{scikit-longitudinal} commit used for the TpT wrapper/API state
-documented here. The helper script \texttt{setup-render-ci.sh} ensures
-that Quarto renders against the extended tree backend required by the
-TpT examples.
+\texttt{environment.yml}, which fixes Python 3.11 together with
+\texttt{scikit-longitudinal==0.1.9} and
+\texttt{scikit-lexicographical-trees==0.0.5}. The helper script
+\texttt{setup-render-ci.sh} ensures that Quarto renders against the
+extended tree backend required by the TpT examples.
 
 \section{Install, quick start, and main
 parameters}\label{install-quick-start-and-main-parameters}
@@ -339,14 +368,52 @@ well. For a standard Python environment, the minimal installation is:
 \end{Highlighting}
 \end{Shaded}
 
-For LONG-format data, the shortest end-to-end TpT workflow is to pass a
-subject identifier, an observation-time column, a subject-level duration
-column, and the names of the longitudinal predictors:
+For long-format data, the recommended TpT workflow is to first reshape
+the data into wide format with \texttt{LongitudinalDataset.to\_wide},
+then fit \texttt{TpTDecisionTreeClassifier} (or
+\texttt{TpTDecisionTreeRegressor}) on the resulting wide matrix together
+with its \texttt{features\_group} metadata:
 
 The small set of parameters that matters most in practice is summarized
 in (\textbf{tbl-tpt-main-parameters?}).
 
-\phantomsection\label{tbl-tpt-main-parameters}
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Minimal set of TpT parameters most relevant for the examples in
+this article. \{\#tbl-tpt-main-parameters\}}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+parameter
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+role
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+parameter
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+role
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{gamma} & Penalizes later split times when their impurity gain is
+similar to earlier alternatives. \\
+\texttt{max\_depth}, \texttt{min\_samples\_leaf},
+\texttt{min\_samples\_split} & Control tree size and minimum node
+size. \\
+\texttt{features\_group} & Maps each longitudinal predictor to the
+columns that correspond to its observed waves. \\
+\texttt{LongitudinalDataset.to\_wide(...)} & Public reshape step used
+before fitting TpT on long-format data. \\
+\texttt{wave\_format} & Names the wave-expanded columns of the reshaped
+matrix. \\
+\texttt{criterion} & Use entropy for classification and squared error
+(MSE) for regression. \\
+\end{longtable}
 
 When the data are already stored in wave-separated columns, or when TpT
 is used inside a broader \texttt{scikit-longitudinal} workflow, the
@@ -358,9 +425,9 @@ pipeline skeleton is:
 This article keeps the examples at the estimator level, but the API is
 compatible with these larger package workflows. In particular, the two
 examples below are meant to bridge the package documentation and
-practical usage: \texttt{pbcseq} uses the long-format wrapper directly,
-whereas \texttt{Produc} shows the explicit conversion and the low-level
-\texttt{features\_group} interface.
+practical usage: both start from public long-format datasets, reshape
+them with the official \texttt{LongitudinalDataset} API, and then fit
+TpT at the estimator level.
 
 \section{Data sets}\label{data-sets}
 
@@ -386,17 +453,19 @@ split times is easy to inspect.
 Our classification example uses \texttt{pbcseq}, the sequential primary
 biliary cirrhosis follow-up data distributed with the \texttt{survival}
 package (Therneau, Terry 2025). We keep four complete longitudinal
-biomarkers (\texttt{bili}, \texttt{albumin}, \texttt{protime},
-\texttt{ast}), use \texttt{day} as the observation-time variable,
-\texttt{futime} as the subject-specific horizon, and define a binary
-target equal to one when the subject experiences either transplantation
-or death by the end of follow-up. In the processed version used here,
-this yields 312 subjects, 1,945 recorded visits, and a median of 5
-visits per subject ((\textbf{tbl-dataset-summary?})).
+biomarkers (\texttt{bili}, \texttt{albumin}, \texttt{protime}, and
+\texttt{ast}) and define a binary target equal to one when the subject
+experiences either transplantation or death by the end of follow-up.
+Because the current TpT implementation operates on wide matrices and
+missing-value routing is still future work, we build a dense modeling
+cohort by retaining subjects with at least five recorded visits, keeping
+the first five visits per subject, indexing them by visit order, and
+reshaping that long table with \texttt{LongitudinalDataset.to\_wide}.
+This yields 183 subjects and 5 visit-order waves
+((\textbf{tbl-dataset-summary?})).
 
-The example is run on a subject-level train/test split, with the
-long-format API of \texttt{TpTDecisionTreeClassifier}. The minimal
-fit/predict workflow is:
+The example is run on a subject-level train/test split after reshaping.
+The minimal fit/predict workflow is:
 
 \phantomsection\label{tbl-pbcseq-metrics}
 
@@ -422,20 +491,21 @@ path.}\label{fig-pbcseq-gamma-profile}
 
 The resulting subject-level metrics are shown in
 (\textbf{tbl-pbcseq-metrics?}). A small preview of the held-out
-predictions is given in (\textbf{tbl-pbcseq-predictions?}). With this
-finer gamma grid, the same depth-3, \texttt{min\_samples\_leaf=10}
-configuration selects \texttt{gamma\ =\ 0.184} and still uses later
-history: the learned tree splits at waves 2, 3, 4, and 7 rather than
-collapsing to baseline-only rules. This is the behavior we want to
-expose in the article: the time penalty regularizes the use of history
-without erasing it when later measurements still provide a clearly
-better impurity reduction.
+predictions is given in (\textbf{tbl-pbcseq-predictions?}). On this
+dense five-visit cohort, the \texttt{max\_depth=2},
+\texttt{min\_samples\_leaf=10} configuration selects
+\texttt{gamma\ =\ 0.181} and still uses later history: the learned tree
+splits at visit-order waves 3 and 4 rather than collapsing to
+baseline-only rules. This is precisely the behaviour we want to expose
+in the article: the time penalty regularizes the use of history without
+erasing it when later measurements still provide a clearly better
+impurity reduction.
 
 \phantomsection\label{tbl-pbcseq-predictions}
 
 The fitted tree is displayed below with the dedicated
-\texttt{plot\_tree} exporter, using the wide feature names built
-internally by the TpT preprocessing step.
+\texttt{plot\_tree} exporter, using the wide feature names built during
+the explicit reshape step.
 
 \clearpage
 
@@ -452,9 +522,8 @@ TpT, while the calling interface remains close to ordinary
 \texttt{scikit-learn} usage. The node labels make the classifier
 interpretable in both dimensions at once: which biomarker matters, and
 at which follow-up wave it becomes decisive for the split. In this run,
-the selected nonzero gamma still preserves several later visits:
-bilirubin enters at waves 2 and 4, albumin at waves 3 and 4, prothrombin
-time at wave 7, and AST at wave 3.
+the selected nonzero gamma still preserves later information: bilirubin
+enters at visit-order waves 3 and 4, and albumin at wave 4.
 
 \section{\texorpdfstring{Example 2: State-level regression on
 \texttt{Produc}}{Example 2: State-level regression on Produc}}\label{example-2-state-level-regression-on-produc}
@@ -476,10 +545,10 @@ criterion, we use the predictor subset \texttt{pc}, \texttt{emp}, and
 \texttt{unemp} together with a depth-4 tree,
 \texttt{min\_samples\_leaf=1}, and \texttt{min\_samples\_split=2}.
 
-In this example we explicitly use the TpT conversion helper
-\texttt{long\_to\_wide(...)}, then fit the regressor on the resulting
-wide matrix and its \texttt{feature\_groups} metadata. The minimal
-workflow is:
+In this example we explicitly reshape the state panel with
+\texttt{LongitudinalDataset.to\_wide(...)}, then fit the regressor on
+the resulting wide matrix and its \texttt{features\_group} metadata. The
+minimal workflow is:
 
 The next two tables show the same training subjects before and after the
 explicit long-to-wide conversion.
@@ -547,10 +616,10 @@ refinements still use later information through private capital at wave
 These two examples are intentionally small. Their role is not to provide
 a full benchmarking study, but to document a reproducible and
 inspectable usage path for TpT within \texttt{scikit-longitudinal}.
-Together they show that TpT can be fit either directly from LONG-format
-data or from an explicit wide matrix, tuned with a simple deterministic
-gamma heuristic for demonstration purposes, and exported as readable
-wave-indexed trees.
+Together they show that public long-format data can be reshaped through
+the official \texttt{LongitudinalDataset} API, tuned with a simple
+deterministic gamma heuristic for demonstration purposes, and exported
+as readable wave-indexed trees.
 
 Most importantly for this article, the exported trees show both what
 matters and when it matters. In \texttt{pbcseq}, the classifier can
@@ -586,9 +655,6 @@ interpretable exported trees, and a growing theoretical foundation.
 Work(s) conducted within the Research Chair DIALog under the aegis of
 the Risk Foundation, a joint initiative by Université Paris-Dauphine PSL
 and CNP Assurances.
-
-Additional acknowledgements for Simon Provost can be added in the
-submission-ready version.
 
 \section*{References}\label{references}
 \addcontentsline{toc}{section}{References}
@@ -631,6 +697,13 @@ Provost, Simon, and Alex A. Freitas. 2025. {``Scikit-Longitudinal: A
 Machine Learning Library for Longitudinal Classification in Python.''}
 \emph{Journal of Open Source Software} 10 (112): 8481.
 \url{https://doi.org/10.21105/joss.08481}.
+
+\bibitem[\citeproctext]{ref-ribeiro2024lexico}
+Ribeiro, Caio, and Alex A. Freitas. 2024. {``A Lexicographic
+Optimisation Approach to Promote More Recent Features on Longitudinal
+Decision-Tree-Based Classifiers: Applications to the English
+Longitudinal Study of Ageing.''} \emph{Artificial Intelligence Review}
+57 (4). \url{https://doi.org/10.1007/s10462-024-10718-1}.
 
 \bibitem[\citeproctext]{ref-seibold2019glmtrees}
 Seibold, Heidi, Torsten Hothorn, and Achim Zeileis. 2019. {``Generalised

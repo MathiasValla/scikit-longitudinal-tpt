@@ -5,7 +5,7 @@ dependencies:
   - python=3.11
   - pip
   # stopit imports pkg_resources at runtime, so CI needs setuptools explicitly
-  - setuptools
+  - setuptools<81
   - jupyter
   - matplotlib
   - numpy
@@ -14,5 +14,5 @@ dependencies:
   - pip:
       # TpT depends on the upstream scikit-lexicographical-trees 0.0.5 release.
       - scikit-lexicographical-trees==0.0.5
-      # Keep scikit-longitudinal pinned to the TpT paper implementation commit.
-      - git+https://github.com/MathiasValla/scikit-longitudinal.git@a66979f6d9039ea1d7f9d02be69e29781c34fe46
+      # Use the public release that exposes LongitudinalDataset.to_wide / to_long.
+      - scikit-longitudinal==0.1.9
