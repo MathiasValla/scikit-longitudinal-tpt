@@ -1,14 +1,36 @@
 # Introduction
 
-`scikit-longitudinal` extends the `scikit-learn` ecosystem with estimators and
-workflows tailored to repeated-measures data [@provost2025sklong]. This article
-focuses on the Time-penalized Trees (TpT) splitter, a decision-tree split
-rule designed for longitudinal covariates [@valla2024tpt]. Rather than
-reproducing the full methodological development, we document the current TpT API
-in the package and provide two compact, fully reproducible real-data examples.
-Beyond the original algorithmic presentation, a recent theoretical analysis
-shows that TpT is a consistent estimator along a non-empty set of observation
-times under explicit structural assumptions [@valla2026consistency].
+Longitudinal data, characterised by repeated measurements of the same
+variables over successive time points (referred to as *waves*), is extensively
+utilised in fields such as finances, social sciences and medicine. Unlike standard
+tabular datasets, longitudinal data contain temporal relationships between a
+feature's values across waves that necessitate specialised processing; that is,
+their temporal structure is often lost under standard tabular processing. `scikit-longitudinal` (`Sklong`) is a novel open-source Python library that
+addresses these challenges by providing a set of tools for
+machine learning on longitudinal data, and integrates with the popular
+`scikit-learn` ecosystem [@provost2025sklong].
+
+This article introduces the Time-penalized Trees (TpT)
+[@valla2024tpt], a recent primitive of `Sklong` that adds a new
+longitudinal-data-aware decision-tree splitter to the library. It extends
+standard split selection to longitudinal data by penalizing candidate splits
+placed at later observation waves, allowing earlier measurements to be
+preferred when impurity reduction is comparable.
+
+Instead of reproducing the full methodological development of TpT
+[@valla2024tpt], we focus on the software side of the contribution, structured
+as follows. We first present the TpT split criterion in `Sklong` and briefly
+recap a recent theoretical analysis showing that TpT is a consistent estimator
+across a non-empty set of observation times under explicit structural
+assumptions [@valla2026consistency]. Second, we describe the reproducible setup
+adopted throughout the paper, including the Python environment and the
+data preparation pipeline. Third, we document the TpT Application Programming
+Interface (API), walking-through installation, the two user-facing entry points, and
+the main hyperparameters. We then present two computational examples on
+public longitudinal datasets, one classification and one regression, to
+illustrate the splitter's behaviour. We conclude with a short discussion of
+the splitter's current scope and limitations, and of directions for future
+work.
 
 Tree-based methods for longitudinal or clustered data already span several
 families. Model-based recursive partitioning and generalized linear model trees
@@ -17,8 +39,11 @@ target subgroup structure through parameter-instability ideas
 forests incorporate random effects to account for within-subject or within-cluster
 dependence [@sela2012reem; @hajjem2014merf]. Survival-tree extensions such as
 LTRC trees can also accommodate time-varying covariates in censored settings
-[@fu2017ltrc]. TpT occupies a narrower but complementary niche: it keeps a
-CART-style impurity objective and modifies the split-selection criterion through
+[@fu2017ltrc]. Closer to TpT, lexicographic optimisation for decision-tree
+prioritise the standard information-gain-ratio criterion and break ties in
+favour of more recently measured features, yielding models that lean on more
+recent waves [@ribeiro2024lexico]. TpT occupies a complementary niche.
+It keeps the CART impurity objective, and modifies the split-selection criterion through
 an explicit time penalty, making the fitted tree directly readable in terms of
 both predictor and wave [@valla2024tpt].
 
@@ -88,14 +113,13 @@ selection. As $\gamma$ increases, the tree becomes more reluctant to use later
 waves unless they bring a clearly stronger impurity reduction.
 
 From a user perspective, the main entry points are
-`TpTDecisionTreeClassifier` and `TpTDecisionTreeRegressor`. Both can consume
-LONG-format data directly by specifying an identifier column, an observation-time
-column and a subject-specific duration column.
-
-The same splitter can also be reached from an explicit wide matrix together
-with `features_group` metadata. We use both entry points below:
-the `pbcseq` example illustrates direct long-format fitting, while the `Produc`
-example makes the long-to-wide conversion explicit.
+`TpTDecisionTreeClassifier` and `TpTDecisionTreeRegressor`. Both estimators
+operate on wide-format data together with `features_group` metadata that
+encodes which columns belong to the same longitudinal feature across waves.
+Long-format data must therefore be converted to wide-format beforehand, which
+could be handled via the `to_wide` API of the `LongitudinalDataset` preprocessing toolkit of `Sklong`
+([documentation](https://scikit-longitudinal.readthedocs.io/latest/API/data_preparation/longitudinal_dataset/)).
+We use this conversion in both examples below.
 
 For this article, we select $\gamma$ on a small candidate grid
 by minimizing the fitted tree's weighted total leaf impurity on the training
@@ -226,6 +250,15 @@ For LONG-format data, the shortest end-to-end TpT workflow is to pass a subject
 identifier, an observation-time column, a subject-level duration column, and the
 names of the longitudinal predictors:
 
+<!--
+//TODO — We'll have to change the above paragraph by:
+
+For long-format data, the recommended workflow is to first reshape the data
+into wide-format using the `LongitudinalDataset` toolkit of `Sklong`, and then
+fit `TpTDecisionTreeClassifier` (or `TpTDecisionTreeRegressor`) on the
+resulting wide matrix together with its `features_group` metadata:
+-->
+
 ```{python}
 #| eval: false
 from scikit_longitudinal.estimators.trees import TpTDecisionTreeClassifier
@@ -245,6 +278,13 @@ tpt = TpTDecisionTreeClassifier(
 tpt.fit(X_long, y_subject)
 pred = tpt.predict(X_long_test)
 ```
+<!--
+//TODO — We'll have to update a lot of the above if we switch to the new
+Sklong API for long-to-wide transformation; the in-estimator long-format
+shortcut (assume_long_format, id_col, time_col, duration_col,
+long_feature_columns) is no longer exposed by TpT and the conversion now lives
+in the Sklong LongitudinalDataset toolkit.
+-->
 
 The small set of parameters that matters most in practice is summarized in
 @tbl-tpt-main-parameters.
@@ -286,6 +326,9 @@ pd.DataFrame(
     ]
 )
 ```
+<!--
+//TODO — We'll have to update a lot of the parameters above.
+-->
 
 When the data are already stored in wave-separated columns, or when TpT is used
 inside a broader `scikit-longitudinal` workflow, the package documentation
@@ -302,7 +345,13 @@ from scikit_longitudinal.pipeline import LongitudinalPipeline
 pipeline = LongitudinalPipeline(
     steps=[
         ("merwav", MerWavTimePlus()),
-        ("tpt", TpTDecisionTreeClassifier(gamma=0.01, features_group=feature_groups)),
+        (
+            "tpt",
+            TpTDecisionTreeClassifier(
+                gamma=0.01,
+                features_group=feature_groups,
+            ),
+        ),
     ],
     features_group=feature_groups,
     non_longitudinal_features=non_longitudinal_features,
@@ -310,6 +359,9 @@ pipeline = LongitudinalPipeline(
     update_feature_groups_callback="default",
 )
 ```
+<!--
+//QUESTION — Something does not add up if we do not define feature_groups above.
+-->
 
 This article keeps the examples at the estimator level, but the API is compatible
 with these larger package workflows. In particular, the two examples below are
@@ -378,6 +430,9 @@ clf.fit(train_df[feature_columns], train_df["event"])
 pred = clf.predict(test_df[feature_columns])
 proba = clf.predict_proba(test_df[feature_columns])[:, 1]
 ```
+<!--
+//TODO — We'll have to update a lot of the above if we switch to the new Sklong API for long-to-wide transformation; the in-estimator long-format shortcut (assume_long_format, id_col, time_col, duration_col, long_feature_columns) is no longer exposed by TpT and the conversion now lives in the Sklong LongitudinalDataset API.
+-->
 
 ```{python}
 #| echo: false
@@ -564,6 +619,9 @@ reg = TpTDecisionTreeRegressor(
 reg.fit(wide_train.X, wide_train.y)
 pred = reg.predict(wide_test.X)
 ```
+<!--
+//TODO — We'll have to update a lot of the above if we switch to the new Sklong API for long-to-wide transformation; the in-estimator long-format shortcut (assume_long_format, id_col, time_col, duration_col, long_feature_columns) is no longer exposed by TpT and the conversion now lives in the Sklong LongitudinalDataset API.
+-->
 
 The next two tables show the same training subjects before and after the
 explicit long-to-wide conversion.
@@ -821,9 +879,6 @@ trees, and a growing theoretical foundation.
 Work(s) conducted within the Research Chair DIALog under the aegis of the Risk
 Foundation, a joint initiative by Université Paris-Dauphine PSL and CNP
 Assurances.
-
-Additional acknowledgements for Simon Provost can be added in the
-submission-ready version.
 
 # References {.unnumbered}
 
