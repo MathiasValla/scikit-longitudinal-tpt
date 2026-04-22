@@ -14,8 +14,17 @@ author:
       - name: Chaire DIALog, Institut Louis Bachelier, Paris, France
   - name: Simon Provost
     email: simon.gilbert.provost@gmail.com
+    orcid: 0000-0001-8402-5464
+    url: https://simonprovostdev.vercel.app
+    roles:
+      - Review of software pull requests
+      - Writing – review & editing
     affiliations:
-      - name: ""
+      - name: School of Computing, University of Kent
+        department: School of Computing
+        city: Canterbury, Kent
+        country: United Kingdom
+        url: https://www.kent.ac.uk
 date: last-modified
 date-modified: last-modified
 description: |
@@ -35,7 +44,7 @@ abstract: >+
   panel. These examples show how the time penalty affects the selected split
   times and how the exported trees reveal both which predictors matter and when
   they matter.
-keywords: [longitudinal data, decision trees, reproducibility, Python, software]
+keywords: [longitudinal data, decision trees, reproducibility, Python, open-source software, scikit-learn, scikit-longitudinal, machine learning, repeated measures]
 bibliography: references.bib
 github-user: MathiasValla
 repo: "scikit-longitudinal-tpt"
