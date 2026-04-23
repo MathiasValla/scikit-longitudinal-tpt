@@ -50,14 +50,15 @@ def prepare_produc() -> pd.DataFrame:
     base_year = int(raw["year"].min())
 
     processed = raw[["state", "year", "pcap", "pc", "emp", "unemp", "gsp"]].copy()
+    processed = processed.sort_values(["state", "year"], kind="mergesort").reset_index(
+        drop=True
+    )
     last_year = processed.groupby("state")["year"].transform("max")
     processed["final_gsp"] = processed.groupby("state")["gsp"].transform("last")
     processed = processed[processed["year"] < last_year].copy()
     processed["time_index"] = processed["year"] - base_year
     processed["duration"] = processed.groupby("state")["time_index"].transform("max")
-    processed = processed.sort_values(["state", "time_index"], kind="mergesort").reset_index(
-        drop=True
-    )
+    processed = processed.sort_values(["state", "time_index"], kind="mergesort").reset_index(drop=True)
     processed.to_csv(PROCESSED_DIR / "produc_regression_long.csv", index=False)
     return processed
 

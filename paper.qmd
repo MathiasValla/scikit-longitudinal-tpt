@@ -130,24 +130,27 @@ as a recommended general tuning rule for applied work.
 ## A compact theoretical guarantee
 
 TpT is not only a practical heuristic. In @valla2026consistency, the analysis
-focuses on record-high times, that is, feasible times whose penalized
-population envelope dominates all later competitors. The main result requires
-separated penalized-envelope gaps (Assumption A1), finite-sample attainability
-of the corresponding envelope peaks (Assumption A2), the TpT-$\alpha$
-branch-growing rule, and the regularity and noise assumptions needed to invoke
-the Klusowski-Tian oracle inequality for depth-$K$ CART estimators
-[@klusowski2024cart].
+focuses on a subsequence of *record-high* times: time indices whose best
+penalized population split score is not beaten by any later candidate time.
+Assumption A1 imposes separated gaps between these record-high penalized
+envelopes and their competitors, while Assumption A2 ensures that the relevant
+population-envelope peaks remain attainable by finite-depth trees. The
+TpT-$\alpha$ growing rule then follows these record-high times when expanding
+the tree. Under these structural assumptions, and the regularity and noise
+conditions needed to apply the Klusowski-Tian oracle inequality for CART
+estimators [@klusowski2024cart], the following consistency statement holds.
 
 ::: {.theorem}
 **Theorem 1 Valla and Milhaud (2026).**
 Assume (A1)--(A2), the TpT-$\alpha$ growing rule, and the regularity and noise
-conditions required to apply the Klusowski-Tian oracle inequality for depth-$K$
-CART estimators. For every fixed record-high time $t_k$ such that the
-approximation bias vanishes as $K(t_k) \to \infty$, the estimator fitted on the
-realized $t_k$-subtree satisfies
+conditions required to apply the Klusowski-Tian oracle inequality for CART
+estimators. For every fixed record-high time $t_k$, consider a sequence of
+depth budgets $K_n(t_k)$ increasing with the sample size at an admissible CART
+rate. If the approximation bias at $t_k$ vanishes along this sequence, the
+estimator fitted on the realized $t_k$-subtree satisfies
 
 $$
-\mathbb{E}\!\left[\left\lVert \hat f_{t_k, K(t_k)} - f_{t_k}^{\star} \right\rVert^2_{L^2(P_{X(t_k)})}\right]
+\mathbb{E}\!\left[\left\lVert \hat f_{t_k, K_n(t_k)} - f_{t_k}^{\star} \right\rVert^2_{L^2(P_{X(t_k)})}\right]
 \longrightarrow 0
 \qquad \text{as } n \to \infty.
 $$
@@ -166,9 +169,11 @@ here from an operational rather than theorem-verification standpoint.
 ## Current scope
 
 The present implementation is suitable for compact reproducible examples and
-software-oriented demonstrations. Missing-value routing inside the Cython TpT
-splitter is still treated as future work, and monotonic constraints are
-explicitly disabled for TpT at the wrapper level.
+software-oriented demonstrations. Although the underlying estimator exposes
+some missing-value support, this article does not rely on arbitrary missingness
+patterns; systematic validation and user-facing guidance for such settings are
+left as future work. Monotonic constraints are explicitly disabled for TpT at
+the wrapper level.
 :::
 
 # Reproducible setup
@@ -182,10 +187,22 @@ The repository contains:
 
 The quick-start installation shown below is the user-facing entry point. Exact
 reproduction of this paper instead relies on `environment.yml`, which fixes
-Python 3.11 together with `scikit-longitudinal==0.1.9` and
-`scikit-lexicographical-trees==0.0.5`. The helper script
-`setup-render-ci.sh` ensures that Quarto renders against the extended tree
-backend required by the TpT examples.
+Python 3.11, `scikit-lexicographical-trees==0.0.5`, and a pinned
+`scikit-longitudinal` GitHub revision exposing the current
+`LongitudinalDataset.to_wide` API. The helper script `setup-render-ci.sh`
+ensures that Quarto renders against the extended tree backend required by the
+TpT examples.
+
+For a local reproduction, create and activate the environment first, regenerate
+the processed data if needed, and then render through the helper script:
+
+```bash
+conda env create -f environment.yml
+conda activate scikit-longitudinal-tpt
+python scripts/prepare_example_data.py
+bash scripts/render_local.sh computo-html
+bash scripts/render_local.sh computo-pdf
+```
 
 ```{python}
 #| echo: false
@@ -233,7 +250,7 @@ plt.rcParams.update(
 )
 
 thousands_formatter = FuncFormatter(lambda value, _: f"{value / 1000:.0f}k")
-billion_formatter = FuncFormatter(lambda value, _: f"{value / 1e9:.1f}B")
+impurity_formatter = FuncFormatter(lambda value, _: f"{value:,.0f}")
 ```
 
 # Install, quick start, and main parameters
@@ -366,12 +383,14 @@ cirrhosis follow-up data distributed with the `survival` package
 [@dataset-pbcseq]. We keep four complete longitudinal biomarkers (`bili`,
 `albumin`, `protime`, and `ast`) and define a binary target equal to one when
 the subject experiences either transplantation or death by the end of
-follow-up. Because the current TpT implementation operates on wide matrices and
-missing-value routing is still future work, we build a dense modeling cohort by
-retaining subjects with at least five recorded visits, keeping the first five
-visits per subject, indexing them by visit order, and reshaping that long table
-with `LongitudinalDataset.to_wide`. This yields 183 subjects and 5 visit-order
-waves (@tbl-dataset-summary).
+follow-up. Because the current TpT examples operate on wide matrices and we do
+not want this software demonstration to depend on arbitrary missingness
+patterns, we build a dense modeling cohort by retaining subjects with at least
+five recorded visits, keeping the first five visits per subject, indexing them
+by visit order, and reshaping that long table with
+`LongitudinalDataset.to_wide`. This yields 183 subjects and 5 visit-order waves
+(@tbl-dataset-summary). The resulting cohort is therefore an illustrative
+complete-case subset, not a substantive analysis of the full `pbcseq` study.
 
 The example is run on a subject-level train/test split after reshaping. The
 minimal fit/predict workflow is:
@@ -440,12 +459,14 @@ We also report the small hyperparameter set used for this preliminary example.
 pbcseq_example.hyperparameters
 ```
 
-The selected gamma comes from the training-grid search shown in
-@tbl-pbcseq-gamma-search and visualized in @fig-pbcseq-gamma-profile.
+The selected gamma comes from the in-sample training-grid search shown in
+@tbl-pbcseq-gamma-search and visualized in @fig-pbcseq-gamma-profile. We use it
+as a deterministic demonstration heuristic, not as a validated model-selection
+rule.
 
 ```{python}
 #| label: tbl-pbcseq-gamma-search
-#| tbl-cap: "Gamma search for the pbcseq classification example. The search uses a 0.001 grid, but the table keeps only distinct training tree-total-impurity values and breaks ties by retaining the smallest gamma."
+#| tbl-cap: "In-sample gamma search for the pbcseq classification example. The search uses a 0.001 grid, but the table keeps only distinct training tree-total-impurity values and breaks ties by retaining the smallest gamma."
 #| tbl-colwidths: [18, 28, 26, 14, 14]
 pbcseq_example.gamma_table.round(4)
 ```
@@ -589,6 +610,17 @@ X_train = train_dataset.to_wide(
 )
 y_train = train_df.groupby("state")["final_gsp"].first().loc[X_train.index]
 
+test_dataset = LongitudinalDataset(
+    file_path=None,
+    data_frame=test_df[["state", "time_index", "pc", "emp", "unemp"]],
+)
+X_test = test_dataset.to_wide(
+    id_col="state",
+    time_col="time_index",
+    longitudinal_columns=["pc", "emp", "unemp"],
+    wave_format="{feature}_t{wave}",
+)
+
 reg = TpTDecisionTreeRegressor(
     gamma=selected_gamma,
     criterion="squared_error",
@@ -603,7 +635,7 @@ reg.fit(X_train, y_train)
 pred = reg.predict(X_test)
 ```
 
-The next two tables show the same training subjects before and after the
+The next two tables show the same training states before and after the
 explicit long-to-wide conversion.
 
 ```{python}
@@ -640,7 +672,7 @@ produc_example.hyperparameters
 
 ```{python}
 #| label: tbl-produc-gamma-search
-#| tbl-cap: "Regression gamma path for the Produc example, reduced to the breakpoints where either the tree total impurity or the selected split times change."
+#| tbl-cap: "In-sample regression gamma path for the Produc example, reduced to the breakpoints where either the tree total impurity or the selected split times change."
 #| tbl-colwidths: [12, 26, 16, 16, 16]
 from analysis.tpt_examples import compress_regression_gamma_table
 
@@ -650,9 +682,13 @@ compress_regression_gamma_table(produc_example.gamma_table).loc[
 ].round(3)
 ```
 
+Here `root_time`, `min_split_time`, and `max_split_time` are `time_index` wave
+numbers rather than calendar years: wave 0 corresponds to 1970, wave 1 to 1971,
+and so on.
+
 ```{python}
 #| label: fig-produc-gamma-profile
-#| fig-cap: "Training tree-total-impurity profile (top) and selected split times (bottom) for the Produc regression example on the article grid from 0.000 to 0.100 by 0.001."
+#| fig-cap: "Training tree-total-impurity profile (top) and selected split times (bottom) for the Produc regression example on the article grid from 0.000 to 0.100 by 0.001. Split times are time_index wave numbers, not calendar years."
 #| out-width: "92%"
 profile = produc_example.gamma_table.copy()
 selected_gamma = produc_example.metrics["selected_gamma"]
@@ -689,7 +725,7 @@ ax.annotate(
 )
 ax.set_xlabel("Gamma")
 ax.set_ylabel("Training tree total impurity")
-ax.yaxis.set_major_formatter(billion_formatter)
+ax.yaxis.set_major_formatter(impurity_formatter)
 ax.margins(x=0.04)
 
 ax2 = axes[1]
@@ -838,8 +874,10 @@ practical property we wanted to make visible.
 The paper also has clear limits. We deliberately keep the methodological
 discussion short, we do not attempt a large comparative benchmark, and the
 gamma-selection rule used here is only a reproducible placeholder rather than a
-definitive model-selection recommendation. On the software side, missing-value
-routing inside the Cython TpT splitter is still future work.
+definitive model-selection recommendation; in particular, it is an in-sample
+training-impurity heuristic and should not be read as validated hyperparameter
+tuning. On the software side, systematic validation and user-facing guidance for
+arbitrary missingness patterns remain future work.
 
 Natural next steps are equally clear: implement survival-specific evaluation
 metrics, add richer visualization utilities such as subject-level trajectory

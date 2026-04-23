@@ -1,12 +1,12 @@
 # Scikit-longitudinal’s TpT splitter: growing decision trees along the
 time dimension of longitudinal data
 Mathias Valla, Simon Provost
-2026-04-20
+2026-04-23
 
-*A short reproducible software note presenting the Time-penalized Trees
-(TpT) splitter in scikit-longitudinal, with one classification example
-on the primary biliary cirrhosis longitudinal dataset and one regression
-example on the Produc US state production panel.*
+*A reproducible article presenting the Time-penalized Trees (TpT)
+splitter implemented in scikit-longitudinal, with one classification
+example on the primary biliary cirrhosis longitudinal dataset and one
+regression example on the Produc US state production panel.*
 
 [![build and
 publish](https://github.com/MathiasValla/scikit-longitudinal-tpt/actions/workflows/build.yml/badge.svg)](https://github.com/MathiasValla/scikit-longitudinal-tpt/actions/workflows/build.yml)
@@ -21,21 +21,21 @@ time dimension of longitudinal data
 ### Authors
 
 - Mathias Valla (Chaire DIALog, Institut Louis Bachelier, Paris, France)
-- Simon Provost ()
+- Simon Provost (School of Computing, University of Kent)
 
 ### Abstract
 
-We present the Time-penalized Trees (TpT) splitter as exposed in
-scikit-longitudinal. TpT extends decision-tree split selection to
-longitudinal settings by penalizing candidate splits that rely on later
-observation waves. This note focuses on software usage and
-reproducibility rather than a full methodological treatment. We document
-the current TpT API in scikit-longitudinal and provide two compact
-real-data examples: a subject-level classification task on the primary
-biliary cirrhosis follow-up data and a state-level regression task on
-the Produc panel data. The accompanying repository contains a
-frozen Python environment, data preparation scripts, and Quarto sources
-for the paper.
+We present the Time-penalized Trees (TpT) splitter as implemented in
+scikit-longitudinal, a Python package for longitudinal machine learning.
+TpT extends recursive partitioning to repeated-measures covariates by
+penalizing candidate splits that rely on later observation waves. We
+describe the underlying split criterion, summarize the main user-facing
+parameters, and illustrate the implementation on two public longitudinal
+datasets: a subject-level classification problem based on the primary
+biliary cirrhosis follow-up data and a state-level regression problem
+based on the Produc panel. These examples show how the time penalty
+affects the selected split times and how the exported trees reveal both
+which predictors matter and when they matter.
 
 ### Repository layout
 
@@ -50,12 +50,14 @@ for the paper.
 
 ### Reproducibility
 
-1.  Create the environment described in `environment.yml`.
-2.  Run `python scripts/prepare_example_data.py`.
+1.  Create and activate the environment described in `environment.yml`.
+2.  Run `python scripts/prepare_example_data.py` from the activated
+    environment.
 3.  Ensure Quarto is available locally. The repository vendors the
     Computo extension under `_extensions/`.
 4.  Render the HTML article with
     `quarto render paper.qmd --to computo-html`, or use
     `bash scripts/render_local.sh computo-html`.
-5.  Render the PDF article with `quarto render paper.qmd --to
-    computo-pdf`, or use `bash scripts/render_local.sh computo-pdf`.
+5.  Render the PDF article with
+    `quarto render paper.qmd --to computo-pdf`, or use
+    `bash scripts/render_local.sh computo-pdf`.

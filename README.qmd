@@ -13,8 +13,8 @@ _{{< meta description >}}_
 
 ### Authors
 
-- {{< meta by-author.1.name.literal >}} ({{< meta by-affiliation.1.name >}})
-- {{< meta by-author.2.name.literal >}} ({{< meta by-affiliation.2.name >}})
+- Mathias Valla (Chaire DIALog, Institut Louis Bachelier, Paris, France)
+- Simon Provost (School of Computing, University of Kent)
 
 ### Abstract
 
@@ -30,8 +30,8 @@ _{{< meta description >}}_
 
 ### Reproducibility
 
-1. Create the environment described in `environment.yml`.
-2. Run `python scripts/prepare_example_data.py`.
+1. Create and activate the environment described in `environment.yml`.
+2. Run `python scripts/prepare_example_data.py` from the activated environment.
 3. Ensure Quarto is available locally. The repository vendors the Computo
    extension under `_extensions/`.
 4. Render the HTML article with `quarto render paper.qmd --to computo-html`,

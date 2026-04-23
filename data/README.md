@@ -17,6 +17,7 @@ This repository uses two small public longitudinal datasets.
     `https://vincentarelbundock.github.io/Rdatasets/csv/plm/Produc.csv`
   - Processing:
     - keep `state`, `year`, `pcap`, `pc`, `emp`, `unemp`, `gsp`
+    - sort chronologically by `state` and `year`
     - define `final_gsp` as the last recorded gross state product for each state
     - remove the final year from the longitudinal covariate history
     - define `time_index` as `year - 1970`
