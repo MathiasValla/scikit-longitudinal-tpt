@@ -40,7 +40,8 @@ PRODUC_PATH = DATA_DIR / "produc_regression_long.csv"
 
 PBCSEQ_FEATURES = ["bili", "albumin", "protime", "ast"]
 PRODUC_FEATURES = ["pc", "emp", "unemp"]
-PBCSEQ_N_VISITS = 5
+PBCSEQ_MIN_VISITS = 2
+PBCSEQ_MAX_VISITS = 4
 
 
 def gamma_grid(max_gamma: float, step: float = 0.005) -> tuple[float, ...]:
@@ -83,16 +84,20 @@ def load_produc_regression_data() -> pd.DataFrame:
     return pd.read_csv(PRODUC_PATH)
 
 
-def build_pbcseq_visit_order_cohort(*, n_visits: int = PBCSEQ_N_VISITS) -> pd.DataFrame:
-    """Build a dense pbcseq cohort using the first visit-order waves per subject."""
+def build_pbcseq_visit_order_cohort(
+    *,
+    min_visits: int = PBCSEQ_MIN_VISITS,
+    max_visits: int = PBCSEQ_MAX_VISITS,
+) -> pd.DataFrame:
+    """Build a variable-length pbcseq cohort using visit-order waves."""
 
     df = load_pbcseq_classification_data().sort_values(["id", "day"], kind="mergesort").copy()
     df["visit_index"] = df.groupby("id").cumcount()
 
     counts = df.groupby("id").size()
-    keep_ids = counts[counts >= n_visits].index
+    keep_ids = counts[counts >= min_visits].index
 
-    cohort = df[df["id"].isin(keep_ids) & df["visit_index"].lt(n_visits)].copy()
+    cohort = df[df["id"].isin(keep_ids) & df["visit_index"].lt(max_visits)].copy()
     cohort = cohort.sort_values(["id", "visit_index"], kind="mergesort").reset_index(drop=True)
     return cohort
 
@@ -134,7 +139,7 @@ def dataset_summary_table() -> pd.DataFrame:
             {
                 "dataset": "pbcseq",
                 "unit": f"{pbcseq['id'].nunique()} subjects",
-                "waves": f"{PBCSEQ_N_VISITS} visit-order waves",
+                "waves": f"{PBCSEQ_MIN_VISITS}-{PBCSEQ_MAX_VISITS} visit-order waves",
                 "predictors": ", ".join(PBCSEQ_FEATURES),
                 "target": "end-of-follow-up event",
             },
@@ -164,6 +169,8 @@ def metrics_table(metrics: dict[str, Any], *, task: str) -> pd.DataFrame:
             "tree_mean_impurity",
             "tree_depth",
             "n_nodes",
+            "duration_nodes",
+            "duration_sample_weight",
         ]
         labels = {
             "train_subjects": "Training subjects",
@@ -176,6 +183,8 @@ def metrics_table(metrics: dict[str, Any], *, task: str) -> pd.DataFrame:
             "tree_mean_impurity": "Tree mean impurity",
             "tree_depth": "Tree depth",
             "n_nodes": "Number of nodes",
+            "duration_nodes": "Duration leaves",
+            "duration_sample_weight": "Duration leaf sample weight",
         }
     elif task == "regression":
         order = [
@@ -236,6 +245,8 @@ def summarize_tpt_tree(tree_) -> dict[str, float]:
     )
 
     duration_mask = (duration_mass > 0.0) & np.isfinite(duration_impurities)
+    duration_node_count = int(np.sum(duration_mask))
+    duration_sample_weight = float(np.sum(duration_mass[duration_mask]))
 
     impurity_sum = 0.0
     if np.any(leaf_mask):
@@ -251,6 +262,27 @@ def summarize_tpt_tree(tree_) -> dict[str, float]:
         "tree_mean_impurity": mean_impurity,
         "n_nodes": int(tree_.node_count),
         "tree_depth": int(tree_.max_depth),
+        "duration_nodes": duration_node_count,
+        "duration_sample_weight": duration_sample_weight,
+    }
+
+
+def tpt_tree_time_summary(model: Any) -> dict[str, int]:
+    """Summarize selected wave indices in a fitted TpT tree."""
+
+    tree_ = model.tree_
+    split_times = np.asarray(
+        getattr(tree_, "split_time_index", np.full(tree_.node_count, -1)),
+        dtype=int,
+    )
+    internal_mask = tree_.feature != _tree.TREE_UNDEFINED
+    internal_times = split_times[internal_mask]
+    if internal_times.size == 0:
+        return {"root_time": -1, "min_split_time": -1, "max_split_time": -1}
+    return {
+        "root_time": int(internal_times[0]),
+        "min_split_time": int(internal_times.min()),
+        "max_split_time": int(internal_times.max()),
     }
 
 
@@ -414,6 +446,7 @@ def run_classification_example(
         time_col="visit_index",
         longitudinal_columns=PBCSEQ_FEATURES,
     )
+    X_test = X_test.reindex(columns=X_train.columns)
     y_train = train_df.groupby("id")["event"].first().loc[X_train.index]
     y_test = test_df.groupby("id")["event"].first().loc[X_test.index]
 
@@ -421,8 +454,9 @@ def run_classification_example(
         return TpTDecisionTreeClassifier(
             gamma=gamma,
             criterion="entropy",
-            max_depth=2,
-            min_samples_leaf=10,
+            max_depth=3,
+            min_samples_leaf=3,
+            min_samples_split=2,
             random_state=random_state,
             features_group=feature_groups,
         )
@@ -465,6 +499,8 @@ def run_classification_example(
         "tree_mean_impurity": float(tree_stats["tree_mean_impurity"]),
         "tree_depth": int(estimator.tree_.max_depth),
         "n_nodes": int(estimator.tree_.node_count),
+        "duration_nodes": int(tree_stats["duration_nodes"]),
+        "duration_sample_weight": float(tree_stats["duration_sample_weight"]),
     }
 
     predictions = (
@@ -479,19 +515,21 @@ def run_classification_example(
         estimator,
         feature_names=feature_names,
         decimals=2,
-        max_depth=2,
+        max_depth=3,
     )
 
     params = hyperparameter_table(
         {
-            "input_format": "wide after LongitudinalDataset.to_wide",
-            "preprocessing": f"subjects with at least {PBCSEQ_N_VISITS} visits; keep first {PBCSEQ_N_VISITS} visit-order waves",
+            "preprocessing": (
+                f"subjects with at least {PBCSEQ_MIN_VISITS} visits; "
+                f"keep up to {PBCSEQ_MAX_VISITS} visit-order waves"
+            ),
             "criterion": "entropy",
             "candidate_gammas": f"{gamma_grid[0]:.3f} to {gamma_grid[-1]:.3f} by 0.001",
             "selected_gamma": best_gamma,
-            "max_depth": 2,
-            "min_samples_leaf": 10,
-            "selection_rule": "minimize training tree_total_impurity on a 0.001 grid",
+            "max_depth": 3,
+            "min_samples_leaf": 3,
+            "min_samples_split": 2,
         }
     )
 

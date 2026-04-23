@@ -473,19 +473,18 @@ split times is easy to inspect.
 
 Our classification example uses \texttt{pbcseq}, the sequential primary
 biliary cirrhosis follow-up data distributed with the \texttt{survival}
-package (Therneau, Terry 2025). We keep four complete longitudinal
-biomarkers (\texttt{bili}, \texttt{albumin}, \texttt{protime}, and
-\texttt{ast}) and define a binary target equal to one when the subject
-experiences either transplantation or death by the end of follow-up.
-Because the current TpT examples operate on wide matrices and we do not
-want this software demonstration to depend on arbitrary missingness
-patterns, we build a dense modeling cohort by retaining subjects with at
-least five recorded visits, keeping the first five visits per subject,
-indexing them by visit order, and reshaping that long table with
-\texttt{LongitudinalDataset.to\_wide}. This yields 183 subjects and 5
-visit-order waves ((\textbf{tbl-dataset-summary?})). The resulting
-cohort is therefore an illustrative complete-case subset, not a
-substantive analysis of the full \texttt{pbcseq} study.
+package (Therneau, Terry 2025). We keep four longitudinal biomarkers
+(\texttt{bili}, \texttt{albumin}, \texttt{protime}, and \texttt{ast})
+and define a binary target equal to one when the subject experiences
+either transplantation or death by the end of follow-up. To make
+duration leaves visible, we retain subjects with at least two recorded
+visits, keep up to the first four visits per subject, index them by
+visit order, and reshape that variable-length long table with
+\texttt{LongitudinalDataset.to\_wide}. This yields 285 subjects and
+between 2 and 4 visit-order waves per subject
+((\textbf{tbl-dataset-summary?})). The resulting cohort is therefore an
+illustrative software example, not a substantive analysis of the full
+\texttt{pbcseq} study.
 
 The example is run on a subject-level train/test split after reshaping.
 The minimal fit/predict workflow is:
@@ -514,24 +513,21 @@ path.}\label{fig-pbcseq-gamma-profile}
 \end{figure}
 
 The resulting subject-level metrics are shown in
-(\textbf{tbl-pbcseq-metrics?}). A small preview of the held-out
-predictions is given in (\textbf{tbl-pbcseq-predictions?}). On this
-dense five-visit cohort, the \texttt{max\_depth=2},
-\texttt{min\_samples\_leaf=10} configuration selects
-\texttt{gamma\ =\ 0.181} and still uses later history: the learned tree
-splits at visit-order waves 3 and 4 rather than collapsing to
-baseline-only rules. This is precisely the behaviour we want to expose
-in the article: the time penalty regularizes the use of history without
-erasing it when later measurements still provide a clearly better
-impurity reduction.
-
-\phantomsection\label{tbl-pbcseq-predictions}
+(\textbf{tbl-pbcseq-metrics?}). On this variable-length cohort, the
+\texttt{max\_depth=3}, \texttt{min\_samples\_leaf=3},
+\texttt{min\_samples\_split=2} configuration selects
+\texttt{gamma\ =\ 0.307} and still uses later history: the learned tree
+splits between visit-order waves 0 and 3 rather than collapsing to
+baseline-only rules. The fitted tree also records duration mass on three
+nodes, which makes visible how TpT separates subjects whose follow-up
+stops before a later candidate split is observed. This is precisely the
+behaviour we want to expose in the article: the time penalty regularizes
+the use of history without erasing it when later measurements still
+provide a clearly better impurity reduction.
 
 The fitted tree is displayed below with the dedicated
 \texttt{plot\_tree} exporter, using the wide feature names built during
 the explicit reshape step.
-
-\clearpage
 
 \begin{figure}
 \centering
@@ -547,7 +543,9 @@ TpT, while the calling interface remains close to ordinary
 interpretable in both dimensions at once: which biomarker matters, and
 at which follow-up wave it becomes decisive for the split. In this run,
 the selected nonzero gamma still preserves later information: bilirubin
-enters at visit-order waves 3 and 4, and albumin at wave 4.
+enters at visit-order waves 0, 1, 2, and 3, while duration branches
+account for subjects whose shorter follow-up ends before some later
+split times.
 
 \section{\texorpdfstring{Example 2: State-level regression on
 \texttt{Produc}}{Example 2: State-level regression on Produc}}\label{example-2-state-level-regression-on-produc}
@@ -600,8 +598,6 @@ times (bottom) for the Produc regression example on the article grid
 from 0.000 to 0.100 by 0.001. Split times are time\_index wave numbers,
 not calendar years.}\label{fig-produc-gamma-profile}
 \end{figure}
-
-\phantomsection\label{tbl-produc-predictions}
 
 \begin{figure}
 \centering
