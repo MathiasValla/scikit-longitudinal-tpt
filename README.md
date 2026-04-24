@@ -41,6 +41,8 @@ which predictors matter and when they matter.
 
 - `paper.qmd`: Quarto source for the article.
 - `environment.yml`: frozen Python environment used for the examples.
+- `setup-env-ci.sh`: environment-setup hook for Computo's GitHub Actions workflow.
+- `setup-render-ci.sh`: render-step hook for Computo's GitHub Actions workflow.
 - `scripts/prepare_example_data.py`: downloads and preprocesses the open
   datasets.
 - `analysis/tpt_examples.py`: helper functions used by the paper to run
@@ -55,9 +57,12 @@ which predictors matter and when they matter.
     environment.
 3.  Ensure Quarto is available locally. The repository vendors the
     Computo extension under `_extensions/`.
-4.  Render the HTML article with
+4.  The root-level `setup-env-ci.sh` and `setup-render-ci.sh` scripts
+    are the two customization hooks used by Computo’s GitHub Actions
+    workflow.
+5.  Render the HTML article with
     `quarto render paper.qmd --to computo-html`, or use
     `bash scripts/render_local.sh computo-html`.
-5.  Render the PDF article with
+6.  Render the PDF article with
     `quarto render paper.qmd --to computo-pdf`, or use
     `bash scripts/render_local.sh computo-pdf`.
