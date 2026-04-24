@@ -251,6 +251,19 @@ plt.rcParams.update(
 
 thousands_formatter = FuncFormatter(lambda value, _: f"{value / 1000:.0f}k")
 impurity_formatter = FuncFormatter(lambda value, _: f"{value:,.0f}")
+
+
+def nudge_tree_annotation(annotations, substrings, *, dx=0.0, dy=0.0):
+    """Move a specific plot_tree annotation slightly to avoid visual overlaps."""
+
+    for annotation in annotations:
+        text = annotation.get_text()
+        if all(substring in text for substring in substrings):
+            x, y = annotation.xyann
+            new_position = (x + dx, y + dy)
+            annotation.xyann = new_position
+            annotation.set_position(new_position)
+            return
 ```
 
 # Install, quick start, and main parameters
@@ -542,14 +555,25 @@ from sklearn import tree
 import matplotlib.pyplot as plt
 
 fig, ax = plt.subplots(figsize=(10, 6))
-tree.plot_tree(
+annotations = tree.plot_tree(
     pbcseq_example.model,
     feature_names=pbcseq_example.feature_names,
     filled=True,
     rounded=True,
-    fontsize=9,
+    fontsize=8,
     tpt_time_scale=0.35,
     ax=ax,
+)
+nudge_tree_annotation(
+    annotations,
+    ["Duration", "entropy = 0.592", "samples = 14"],
+    dx=0.045,
+)
+nudge_tree_annotation(
+    annotations,
+    ["Duration", "entropy = 0.0", "samples = 2"],
+    dx=0.035,
+    dy=-0.01,
 )
 ax.set_title(f"TpT classification tree (selected gamma = {pbcseq_example.metrics['selected_gamma']})")
 plt.show()
@@ -819,15 +843,21 @@ penalization progressively collapses the tree toward earlier waves.
 #| label: fig-produc-tree
 #| fig-cap: "Selected TpT regression tree on Produc, displayed with the dedicated plot_tree exporter."
 #| out-width: "100%"
-fig, ax = plt.subplots(figsize=(13, 6.6))
-tree.plot_tree(
+fig, ax = plt.subplots(figsize=(15, 7.5))
+annotations = tree.plot_tree(
     produc_example.model,
     feature_names=produc_example.feature_names,
     filled=True,
     rounded=True,
-    fontsize=7,
+    fontsize=6,
     tpt_time_scale=0.18,
     ax=ax,
+)
+nudge_tree_annotation(
+    annotations,
+    ["squared_error = 0.0", "samples = 1", "value = 309273.0"],
+    dx=0.03,
+    dy=0.02,
 )
 ax.set_title(f"TpT regression tree (selected gamma = {produc_example.metrics['selected_gamma']})")
 plt.show()
