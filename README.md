@@ -50,7 +50,7 @@ which predictors matter and when they matter.
 - `data/processed/`: processed subject-level longitudinal datasets used
   in the paper.
 
-### Reproducibility
+### Reproducibility 
 
 1.  Create and activate the environment described in `environment.yml`.
 2.  Run `python scripts/prepare_example_data.py` from the activated
