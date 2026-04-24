@@ -264,6 +264,41 @@ def nudge_tree_annotation(annotations, substrings, *, dx=0.0, dy=0.0):
             annotation.xyann = new_position
             annotation.set_position(new_position)
             return
+
+
+def nudge_duration_annotation_and_link(ax, annotations, substrings, *, dx=0.0, dy=0.0):
+    """Move a duration box together with its dashed connector."""
+
+    for annotation in annotations:
+        text = annotation.get_text()
+        if all(substring in text for substring in substrings):
+            old_x, old_y = annotation.xyann
+            new_position = (old_x + dx, old_y + dy)
+            annotation.xyann = new_position
+            annotation.set_position(new_position)
+
+            for line in ax.lines:
+                if line.get_linestyle() != "--":
+                    continue
+
+                xdata = list(line.get_xdata())
+                ydata = list(line.get_ydata())
+                if len(xdata) != 2 or len(ydata) != 2:
+                    continue
+                if ydata[0] != old_y or ydata[1] != old_y:
+                    continue
+
+                if xdata[0] == old_x:
+                    xdata[0] = new_position[0]
+                elif xdata[1] == old_x:
+                    xdata[1] = new_position[0]
+                else:
+                    continue
+
+                ydata = [new_position[1], new_position[1]]
+                line.set_xdata(xdata)
+                line.set_ydata(ydata)
+                return
 ```
 
 # Install, quick start, and main parameters
@@ -564,15 +599,17 @@ annotations = tree.plot_tree(
     tpt_time_scale=0.35,
     ax=ax,
 )
-nudge_tree_annotation(
+nudge_duration_annotation_and_link(
+    ax,
     annotations,
     ["Duration", "entropy = 0.592", "samples = 14"],
-    dx=0.045,
+    dx=0.19,
 )
-nudge_tree_annotation(
+nudge_duration_annotation_and_link(
+    ax,
     annotations,
     ["Duration", "entropy = 0.0", "samples = 2"],
-    dx=0.035,
+    dx=0.215,
     dy=-0.01,
 )
 ax.set_title(f"TpT classification tree (selected gamma = {pbcseq_example.metrics['selected_gamma']})")
@@ -856,8 +893,8 @@ annotations = tree.plot_tree(
 nudge_tree_annotation(
     annotations,
     ["squared_error = 0.0", "samples = 1", "value = 309273.0"],
-    dx=0.03,
-    dy=0.02,
+    dx=0.06,
+    dy=0.0,
 )
 ax.set_title(f"TpT regression tree (selected gamma = {produc_example.metrics['selected_gamma']})")
 plt.show()

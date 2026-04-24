@@ -10,7 +10,7 @@ dependencies:
   - matplotlib=3.10.8
   - numpy=1.26.4
   - pandas=2.3.3
-  - scipy=1.15.3
+  - scipy=1.16.3
   - pip:
       # TpT depends on the upstream scikit-lexicographical-trees 0.0.5 release.
       - scikit-lexicographical-trees==0.0.5
