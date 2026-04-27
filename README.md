@@ -4,7 +4,7 @@ Mathias Valla, Simon Provost
 2026-04-23
 
 *A reproducible article presenting the Time-penalized Trees (TpT)
-splitter implemented in scikit-longitudinal, with one classification
+splitter implemented in scikit-longitudinal, with one classification 
 example on the primary biliary cirrhosis longitudinal dataset and one
 regression example on the Produc US state production panel.*
 
