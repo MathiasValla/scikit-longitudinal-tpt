@@ -179,8 +179,8 @@ bash scripts/reproduce.sh
 ```
 
 The script recreates the environment and renders the paper in HTML and
-PDF. The environment file pins Python 3.11 and the Sklong revision and
-lists the tools needed to compile the extension. The Sklong release notes
+PDF. The reproduction scripts pin Python 3.11 and the Sklong revision and
+list the tools needed to compile the extension. The Sklong release notes
 credit Mathias Valla for the TpT integration. Simon Provost and Alex
 Freitas are the authors of the original library [@provost2025sklong].
 

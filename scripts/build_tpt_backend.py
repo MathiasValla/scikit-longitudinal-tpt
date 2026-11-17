@@ -87,6 +87,23 @@ def patch_splitter(path):
     path.write_text(source[:start] + split + source[stop:], encoding="utf-8")
 
 
+def patch_debug_flag(path):
+    source = path.read_text(encoding="utf-8")
+    # getenv returns C bytes; Cython 3.0 cannot compare them to Unicode literals.
+    source = replace_once(
+        source,
+        r"""    if env[0] == '\0':
+        return False
+    if env[0] == '0' and env[1] == '\0':
+""",
+        """    if env[0] == 0:
+        return False
+    if env[0] == b'0' and env[1] == 0:
+""",
+    )
+    path.write_text(source, encoding="utf-8")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wheel-dir", type=Path, help="Build a wheel instead of installing")
@@ -107,6 +124,7 @@ def main():
             tar.extractall(build, filter="data")
         package = build / NAME
         patch_splitter(package / "sklearn/tree/_splitter.pyx")
+        patch_debug_flag(package / "sklearn/tree/_tree.pyx")
         pip = [sys.executable, "-m", "pip"]
         if options.wheel_dir is not None:
             action = ["wheel", "--wheel-dir", str(options.wheel_dir.resolve())]

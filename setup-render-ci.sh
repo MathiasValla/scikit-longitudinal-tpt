@@ -2,10 +2,15 @@
 
 set -euo pipefail
 
-# scikit-longitudinal installs plain scikit-learn as a dependency, while the
-# paper examples need the extended sklearn tree backend shipped by
-# scikit-lexicographical-trees. Reinstall it last so its sklearn modules are
-# the ones imported during Quarto rendering. The case study uses a TpT-only
-# correction for duration routing and statistics on the pinned release.
 cd "$(dirname "${BASH_SOURCE[0]}")"
-python scripts/build_tpt_backend.py
+wheel_dir="$(mktemp -d)"
+trap 'rm -rf "$wheel_dir"' EXIT
+python scripts/build_tpt_backend.py --wheel-dir "$wheel_dir"
+wheel=("$wheel_dir"/scikit_lexicographical_trees-*.whl)
+
+python -m pip install "${wheel[0]}" \
+  "git+https://github.com/simonprovost/scikit-longitudinal.git@3f20b3d778446deb53c24fe6dcc2eae4c9d6d450"
+
+# Plain scikit-learn is a transitive dependency and shares the sklearn
+# namespace. Reinstall the article's backend last to ensure it is imported.
+python -m pip install --force-reinstall --no-deps "${wheel[0]}"
