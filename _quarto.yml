@@ -1,7 +1,7 @@
 project:
   type: default
   render:
-    - paper.qmd
+    - main.qmd
     - README.qmd
 
 title: "Scikit-longitudinal's TpT splitter: growing decision trees along the time dimension of longitudinal data"
@@ -29,22 +29,22 @@ author:
 date: last-modified
 date-modified: last-modified
 description: |
-  A reproducible article presenting the Time-penalized Trees (TpT) splitter
-  implemented in scikit-longitudinal, with one classification example on the
-  primary biliary cirrhosis longitudinal dataset and one regression example on
-  the Produc US state production panel.
+  How to fit and read a Time-penalized Tree in scikit-longitudinal, using
+  public follow-up data on primary biliary cholangitis.
 abstract: >+
-  We present the Time-penalized Trees (TpT) splitter as implemented in
-  scikit-longitudinal, a Python package for longitudinal machine learning. TpT
-  extends recursive partitioning to repeated-measures covariates by penalizing
-  candidate splits that rely on later observation waves. We describe the
-  underlying split criterion, summarize the main user-facing parameters, and
-  illustrate the implementation on two public longitudinal datasets: a
-  subject-level classification problem based on the primary biliary cirrhosis
-  follow-up data and a state-level regression problem based on the Produc
-  panel. These examples show how the time penalty affects the selected split
-  times and how the exported trees reveal both which predictors matter and when
-  they matter.
+  Two patients can have the same bilirubin level at their last visit, even
+  though it has been rising in one patient and falling in the other. A tree
+  fitted to the last visit sees the same bilirubin value for both.
+  A Time-penalized Tree (TpT) chooses a measurement and a visit at each
+  split. It favors earlier visits when the gains are close and can send
+  shorter records to a separate leaf. We show how
+  to fit and read such a tree in scikit-longitudinal. In public Mayo Clinic
+  data, we use the first five years of follow-up to predict death or liver
+  transplantation between years five and ten. The fitted tree asks for
+  albumin and bilirubin at different visits and has two leaves for patients
+  who lack the requested visit. Across ten repeats of five-fold
+  cross-validation in this cohort, mean out-of-fold ROC AUC was 0.815 for
+  TpT and 0.723 for a CART tree given only the last available visit.
 keywords: [longitudinal data, decision trees, reproducibility, Python, open-source software, scikit-learn, scikit-longitudinal, machine learning, repeated measures]
 bibliography: references.bib
 github-user: MathiasValla

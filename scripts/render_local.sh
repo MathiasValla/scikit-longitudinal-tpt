@@ -52,4 +52,4 @@ export QUARTO_PYTHON="$PYTHON_BIN"
 export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$ROOT"
 
 cd "$ROOT"
-exec "$QUARTO_BIN" render paper.qmd --to "$FORMAT"
+exec "$QUARTO_BIN" render main.qmd --to "$FORMAT" "${@:2}"
