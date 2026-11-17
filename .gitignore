@@ -24,6 +24,7 @@ __pycache__/
 /*_files
 /*_cache
 /_freeze
+/public/
 _site/
 /cache/
 
@@ -42,6 +43,9 @@ paper.html
 paper.pdf
 paper.ipynb
 paper.tex
+main.html
+main.pdf
+main.tex
 template-computo-julia.html
 template-computo-julia.pdf
 template-computo-julia.tex

@@ -1,9 +1,11 @@
 name: scikit-longitudinal-tpt
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
   - python=3.11
   - pip
+  - git
   # stopit imports pkg_resources at runtime, so CI needs setuptools explicitly
   - setuptools<81
   - jupyter=1.1.1
@@ -11,8 +13,8 @@ dependencies:
   - numpy=1.26.4
   - pandas=2.3.3
   - scipy=1.16.3
-  - pip:
-      # TpT depends on the upstream scikit-lexicographical-trees 0.0.5 release.
-      - scikit-lexicographical-trees==0.0.5
-      # Pin the Sklong revision that exposes the current LongitudinalDataset.to_wide / to_long API.
-      - git+https://github.com/simonprovost/scikit-longitudinal.git@3f20b3d778446deb53c24fe6dcc2eae4c9d6d450
+  - cython=3.0
+  - meson-python
+  - ninja
+  - c-compiler
+  - cxx-compiler

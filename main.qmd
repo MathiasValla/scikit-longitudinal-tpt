@@ -1,0 +1,396 @@
+---
+output-file: paper
+format:
+  computo-html:
+    output-file: paper.html
+    fig-format: svg
+  computo-pdf:
+    output-file: paper.pdf
+    keep-tex: true
+    fig-format: pdf
+---
+
+# Introduction
+
+Which visit should a decision tree use? Keeping just the last visit gives
+one row per patient, so it is easy to fit an ordinary classification or
+regression tree (CART) [@breiman1984cart]. The price is that the tree never
+sees the earlier tests. Averaging over visits loses a different piece of
+information: the same average bilirubin can come from a rise or a fall.
+
+A Time-penalized Tree (TpT) [@valla2024tpt] can ask a question such as
+"Was albumin below this threshold at visit 4?" The visit is part of the
+split, just like the threshold. A later visit can beat an earlier one
+only if its gain makes up for the extra penalty. If the requested visit
+is absent, the split can send the patient to a separate terminal branch.
+
+We show how to fit and read these trees in `scikit-longitudinal` (Sklong),
+the Python library introduced by @provost2025sklong. The integration adds
+classification and regression estimators, the compiled split rule, and an
+export that shows the visits used by the tree. We work through one example
+from a Mayo Clinic trial: given the first five years of follow-up, does
+keeping all recorded visits help distinguish patients who die or undergo
+liver transplantation by year ten?
+
+Within Sklong, lexicographic splitting also works with measurements from
+different visits, but breaks near-ties in favor of the more recent ones
+[@ribeiro2024lexico]. TpT favors earlier visits when their gains are close.
+This choice serves a different purpose from using a tree to find changes
+in model parameters [@zeileis2008mob; @seibold2019glmtrees], modeling
+within-subject dependence with random effects [@sela2012reem;
+@hajjem2014merf], or fitting a censored time-to-event outcome [@fu2017ltrc].
+
+# The TpT split rule
+
+## Prediction target
+
+In the general formulation [@valla2026consistency], both the predictors
+$X_i(t)$ and the response $Y_i(t)$ can change with time for subject $i$.
+Write $X_{i0}$ for the duration of observation and
+$\mathcal I(t)=\{i:X_{i0}\ge t\}$ for the subjects still under observation
+at $t$. The regression target at time $t$ is
+$m_t(X_{\le t})=\mathbb E[Y(t)\mid X_{\le t}]$, where
+$X_{\le t}=\{X(s):s\le t\}$ is the history available by $t$. For a binary
+response, this is the probability $\Pr\{Y(t)=1\mid X_{\le t}\}$. The
+theoretical result below concerns a fixed-time subtree, with target
+$f_t^\star(x)=\mathbb E[Y(t)\mid X(t)=x,A_t]$. Here $A_t$ means that the
+subject remains under observation at $t$ and reaches the subtree by
+following the earlier split rules.
+
+The Python estimators take **one response per subject**. In the case
+study, we give each patient a single label $Z_i$ for a future event after
+a common prediction date $L$. We estimate $\Pr(Z=1\mid X_{\le L})$ by
+routing each patient to a leaf and reporting the fraction of training
+patients there who had the event. Two patients can reach their leaves
+using different visits, but the outcome window is the same for both.
+
+## Impurity and the duration branch
+
+Impurity measures how mixed the outcomes are within a node. In
+classification, impurity is zero when everyone has the same outcome
+and highest when the classes are equally frequent. Renaming the classes
+leaves it unchanged. If $p_k(g)$ is the proportion of class $k$ in node
+$g$, the Gini and entropy criteria are
+
+$$
+I_{\mathrm{Gini}}(g)=1-\sum_{k=1}^K p_k(g)^2,\qquad
+I_{\mathrm{Ent}}(g)=-\sum_{k=1}^K p_k(g)\log_2 p_k(g),
+$$
+
+with $0\log_2 0=0$. For regression, mean squared error is
+$I_{\mathrm{MSE}}(g)=|g|^{-1}\sum_{i\in g}(y_i-\bar y_g)^2$, where
+$\bar y_g$ is the node mean.
+
+Start at a parent node that has reached wave $t_p$ (wave 0 at the root).
+A candidate split tests a threshold $b$ on a measurement $X_j(t_c)$ at
+wave $t_c\ge t_p$. Subjects with that visit can go left or right. Those
+whose records end before $t_c$ can go to a third child, the **duration
+leaf**. Its prediction comes from training subjects with the same routing
+history and no measurement at the requested visit.
+
+Write $g_\ell$, $g_r$ and $g_d$ for these three children of node $g$.
+Subtract their size-weighted impurity from the impurity of $g$, then
+discount the gain for advancing from $t_p$ to $t_c$. The score is
+
+$$
+G_\gamma(g;j,b,t_c)=
+\left[I(g)-\sum_{h\in\{g_\ell,g_r,g_d\}}\frac{|h|}{|g|}I(h)\right]
+\exp[-\gamma(t_c-t_p)],
+$$
+
+where an empty child contributes zero. TpT takes the admissible split with
+the highest positive score. Without a duration child, the gain in brackets
+is the usual CART impurity decrease. Setting $\gamma=0$ removes the discount
+but still requires visits to come in order along a branch. Raising $\gamma$
+gives earlier visits more weight in the split search.
+
+## Scope of the theoretical guarantee
+
+The consistency result of @valla2026consistency is about the subtrees
+that a growing TpT actually forms. Their regression analysis uses
+TpT-$\alpha$, which requires each ordinary child to keep at least a
+fraction $\alpha$ of the parent's observations. The proof follows
+*record-high times*, where the best penalized gain exceeds the gains at all
+later times. A1 requires a positive gap above the later competitors. A2
+requires the empirical gain peaks at those times and at their best later
+competitors to approach the corresponding envelope values as the node
+grows.
+
+**Theorem 1 (Valla and Milhaud, 2026).** Suppose A1 and A2 hold, the
+TpT-$\alpha$ rule is used, and the fixed-time target has the conditional
+bounded-variation approximation and sub-Gaussian noise conditions used in
+the CART oracle bound [@klusowski2024cart]. Fix a record-high time $t_k$
+with positive probability of continued observation. If the $t_k$-subtree
+forms with probability tending to one and the approximation and variance
+terms in the oracle bound converge to zero in $L^1$, then
+
+$$
+\mathbb E\!\left[
+\|\widehat f_{t_k,K(t_k)}-f_{t_k}^\star\|^2_{L^2(P^{(t_k)}_{X(t_k)})}
+\right]\longrightarrow 0,
+$$
+
+where $K(t_k)$ is the selected subtree depth and $P^{(t_k)}_{X(t_k)}$ is the
+law of $X(t_k)$ given $A_{t_k}$. This is the fixed-time regression guarantee
+in Theorem 2 of @valla2026consistency. The case study below uses a
+fixed-depth classifier to illustrate the software.
+
+# Software and reproducibility
+
+The published library installs with `python -m pip install scikit-longitudinal`.
+Use [`LongitudinalDataset.to_wide`](https://scikit-longitudinal.readthedocs.io/latest/tutorials/long_wide_reshape/)
+to put each patient on one row. Pass the resulting matrix and
+`features_group`, which gives the columns for each predictor in visit
+order, to `TpTDecisionTreeClassifier` or `TpTDecisionTreeRegressor`.
+Set `gamma` to control the penalty and `criterion` to choose the impurity.
+`max_depth` and `min_samples_leaf` control tree size. A duration leaf can
+be smaller than the minimum set for the ordinary leaves.
+
+The Python estimators pass the visit groups and penalty to the Cython
+splitter and tree builder in `scikit-lexicographical-trees`. The compiled
+code handles the repeated work of sorting feature columns and scoring
+thresholds. For a fixed number of classes, a fit costs at most
+$O(Dpn\log n)$ at depth $D$ with $n$ observations and $p$ candidate
+feature-wave columns. Trying another penalty means fitting another tree.
+
+The visit order along a branch is a constraint on *when* a split can
+look. It does not constrain how predictions change as a predictor's
+value rises. TpT does not implement that second constraint: if a caller
+sets `monotonic_cst`, the estimator warns and disables it.
+
+**Backend for the case study.** In release 0.0.5, a duration leaf can pick
+up counts from a losing candidate, and a training partition can differ
+from the routing used at prediction. We build that release with a local
+correction that keeps records with absent visits out of the ordinary
+branches and restores the winning split's partition and duration
+statistics. We check each fitted tree by sending the training records
+through it again and comparing the observed leaf counts and class
+proportions with the stored ones. The correction is specific to the
+article and to absent trailing visits.
+
+The [article repository](https://github.com/MathiasValla/scikit-longitudinal-tpt)
+contains the data snapshot, the analysis code and the build helper. The
+helper checks the backend archive against its checksum before patching
+and compiling it. From the checkout, with Conda, Quarto and LaTeX
+available, run:
+
+```bash
+bash scripts/reproduce.sh
+```
+
+The script recreates the environment and renders the paper in HTML and
+PDF. The reproduction scripts pin Python 3.11 and the Sklong revision and
+list the tools needed to compile the extension. The Sklong release notes
+credit Mathias Valla for the TpT integration. Simon Provost and Alex
+Freitas are the authors of the original library [@provost2025sklong].
+
+# Case study: predicting death or transplant from earlier visits {#sec-case-study}
+
+## Cohort and outcome
+
+The public `pbcseq` data contain 1,945 visits for the 312 randomized
+participants in a Mayo Clinic trial on primary biliary cholangitis
+[@dataset-pbcseq]. The trial scheduled follow-up at six months, one year
+and annually thereafter, and the records also include extra visits. We
+use four measurements available at every visit in our analysis: serum
+bilirubin (`bili`), serum albumin (`albumin`), prothrombin time (`protime`)
+and aspartate aminotransferase (`ast`).
+
+Take year five after enrolment (day 1,826) as the prediction date.
+From the visits recorded by then, we predict whether a patient will die
+or receive a liver transplant by year ten (day 3,652). Let $T_i$ be the
+observed follow-up time in days and let $\delta_i$ be 0 for censoring, 1
+for transplant and 2 for death. The binary label is
+
+$$
+Z_i=\mathbf 1\{1826<T_i\le 3652,\ \delta_i\in\{1,2\}\}.
+$$
+
+To know the label, we need $T_i>1826$ and either a recorded event or
+observation through day 3,652. We exclude 110 patients whose follow-up
+ended by year five and 94 more who were censored before year ten. The
+remaining 108 patients have 57 events and 51 observed non-events in the
+window. This complete-endpoint restriction determines whom the comparison
+describes; it does not adjust for censoring.
+
+We retain 621 visits through year five, between one and seven per
+patient (median six). We number each patient's visits from zero.
+Visit index 2 means the third recorded visit, whenever it occurred
+(@tbl-pbc-preview). In the wide table, the columns beyond a patient's
+last visit stay empty. Those shorter histories give the tree a chance
+to use a duration leaf.
+
+```{python}
+#| echo: false
+#| label: tbl-pbc-preview
+#| tbl-cap: "Four visits from one eligible patient. Day counts days since enrolment; wave is the recorded visit index, starting at 0. TpT uses the visit index, not the number of days between tests."
+#| tbl-colwidths: [12, 12, 19, 19, 19, 19]
+import numpy as np
+from IPython.display import HTML, display
+from matplotlib import pyplot as plt
+from analysis.tpt_case_study import (
+    BIOMARKERS, auc_summary, fit_tpt, load_cohort,
+    plot_roc, plot_tpt, run_cv, tree_summary,
+)
+
+cohort = load_cohort()
+preview = cohort.visits.loc[cohort.visits.id.eq(cohort.visits.id.iloc[0])]
+display(HTML(preview[["day", "wave", *BIOMARKERS]].head(4).round(2).to_html(index=False)))
+```
+
+## Fit and evaluate
+
+What does the model gain by seeing earlier tests? We give all trees
+the same four biomarkers. TpT sees every visit through year five; CART
+sees only each patient's last available visit. That last row comes
+from different visits for different patients. To see whether knowing
+when that row was recorded is enough, we also fit CART with its visit
+index and elapsed day.
+
+All three fits use entropy, at most three levels of splits and at least
+20 patients in each ordinary leaf. We use $\gamma=0.1$ to illustrate a
+nonzero time penalty. Here is one fold of the analysis, from reshaping
+the visit records to scoring the outcome for held-out patients.
+
+```{python}
+#| eval: false
+#| echo: true
+from sklearn.model_selection import StratifiedKFold
+from scikit_longitudinal.data_preparation import LongitudinalDataset
+from scikit_longitudinal.estimators.trees import TpTDecisionTreeClassifier
+from analysis.tpt_case_study import BIOMARKERS, GAMMA, PARAMS, load_cohort
+
+cohort = load_cohort()
+long = cohort.visits[["id", "wave", *BIOMARKERS]]
+dataset = LongitudinalDataset(file_path=None, data_frame=long)
+X = dataset.to_wide(
+    id_col="id", time_col="wave", longitudinal_columns=BIOMARKERS,
+    wave_format="{feature}_t{wave}",
+)
+groups = dataset.feature_groups()
+train, test = next(StratifiedKFold(
+    n_splits=5, shuffle=True, random_state=0
+).split(X, cohort.y))
+model = TpTDecisionTreeClassifier(features_group=groups, gamma=GAMMA, **PARAMS)
+model.fit(X.iloc[train], cohort.y[train])
+event_score = model.predict_proba(X.iloc[test])[:, 1]
+```
+
+We split by patient, using the same stratified five-fold partition for
+all three models. Within a repeat, each patient is scored by a model
+trained on the other four folds. We pool those 108 scores to compute
+the area under the ROC curve (AUC). We use ten partitions, with seeds
+0 through 9. @fig-pbc-roc shows the curves for the first repeat and
+the paired AUC difference for every repeat. @tbl-pbc-auc gives the
+summaries for all three models.
+
+```{python}
+#| echo: false
+#| label: fig-pbc-roc
+#| fig-cap: "Predicting death or transplant by year ten. (a) ROC curves from the first five-fold repeat, with pooled out-of-fold AUCs in the legend. The dotted diagonal marks chance discrimination. CART with timing also uses the last visit's index and elapsed day. (b) TpT AUC minus last-visit CART AUC in each repeat, on identical patient folds. The dashed line marks the mean difference."
+#| fig-alt: "The first-repeat ROC has AUC 0.838 for TpT and 0.720 for last-visit CART. Across the ten repeats, each paired AUC difference favors TpT."
+#| out-width: "100%"
+#| fig-pos: H
+predictions, aucs = run_cv(cohort)
+plot_roc(predictions[0], aucs)
+plt.show()
+```
+
+```{python}
+#| echo: false
+#| label: tbl-pbc-auc
+#| tbl-cap: "Mean and range of out-of-fold ROC AUC across the ten shared five-fold partitions. The range describes variation with the partition, not a confidence interval."
+#| tbl-colwidths: [39, 21, 20, 20]
+display(HTML(auc_summary(aucs).to_html(index=False, float_format="{:.3f}".format)))
+```
+
+Across the ten repeats, TpT's AUC is between 0.053 and 0.128 higher than
+that of last-visit CART. Giving CART the timing of its last visit does
+not close the gap in this cohort. In the first repeat, duration leaves
+give the final score for 17 held-out patients.
+
+We explored different prediction windows and settings on this cohort
+before settling on the example. Some earlier windows favored CART.
+The paired comparisons show what happens when we repartition these
+patients; a separate cohort would be needed to test how well the result
+carries over.
+
+## Read the exported tree
+
+To read the rules, we refit the tree on all 108 patients and draw it
+with `plot_tree` (@fig-pbc-tree). The ROC curves above use out-of-fold
+scores. Start with a patient whose record ends at visit index 3. The
+tree asks for albumin at index 4 and
+finds no such visit. The patient follows the dashed branch: 11 of the
+14 training patients in that leaf had an event. There is no need to
+substitute albumin from an earlier visit. For a patient whose albumin
+at index 4 exceeds 3.415, the next question uses bilirubin at index 5.
+That rule has its own duration leaf for patients whose records end
+at index 4.
+
+The two full-cohort fits have different shapes. TpT has
+depth two, three ordinary leaves and two duration leaves. Last-visit
+CART has depth three and four ordinary leaves. It also splits on albumin
+first (threshold 3.215) and bilirubin next, but each rule uses the last
+available value, regardless of which visit supplied it. Prothrombin time
+and AST were available to both trees and win no split in either refit.
+
+```{python}
+#| echo: false
+#| label: fig-pbc-tree
+#| fig-cap: "TpT refitted to all 108 patients. With the requested visit present, follow a solid arrow. If the record stops before that visit, take the dashed branch. Leaves show the event percentage and fraction (events/patients). Blue and ochre indicate event and no-event majorities in ordinary leaves. The axis marks the visit index reached at the node (0 at the root); vertical spacing is schematic."
+#| fig-alt: "Albumin at visit index 4 leads to an event proportion of 11 of 14 when that visit is absent. The branch above the albumin threshold tests bilirubin at index 5 and routes one event in three patients to its duration leaf when the visit is absent."
+#| out-width: "100%"
+#| fig-pos: H
+rows = np.arange(len(cohort.y))
+fitted = fit_tpt(cohort, rows)
+assert tree_summary(fitted) == {
+    "split_waves": [4, 5], "ordinary_leaves": 3,
+    "duration_leaves": 2, "duration_patients": 17,
+}
+plot_tpt(fitted, cohort.wide.columns)
+plt.show()
+```
+
+With the same patients and depth limit, raising $\gamma$ to 0.3 shifts
+the splits from visits 4 and 5 to visits 1, 2 and 3. This is the practical
+effect of the penalty here: the tree asks for earlier measurements.
+
+# Discussion
+
+The exported tree lets us trace a prediction to the visits it uses.
+For a shorter record, we can also see which visit was absent and how
+many comparable training patients contributed to the prediction. The
+AUC comparison combines two differences: the split rule and the
+information available to it. We cannot tell from this comparison how
+much of the gap comes from earlier biomarker values and how much
+from the pattern of recorded visits.
+
+For this application, the next question is how the comparison changes
+when patients with censored outcomes can contribute to the evaluation,
+using survival-specific metrics. On the software side, we would first
+test duration routing more broadly. Individual paths through an exported
+tree would help show why a patient reached a particular leaf. The same
+splitter could also be used in ensembles or given a penalty that reflects
+prior knowledge about lags between predictors and responses.
+
+# Acknowledgements
+
+Work(s) conducted within the Research Chair DIALog under the aegis of the Risk
+Foundation, a joint initiative by Université Paris-Dauphine PSL and CNP
+Assurances.
+
+# Use of generative AI {.unnumbered}
+
+We made limited use of AI assistance in preparing the original software
+and manuscript. We used OpenAI's ChatGPT and Codex to help with language
+editing, formatting and rendering. During revision, Codex also helped
+draft parts of the text and develop parts of the analysis, plotting and
+reproduction code. The data come from the documented public source.
+The article code computes every result and produces every table and
+figure. The authors are responsible for the final text and code.
+
+# References {.unnumbered}
+
+::: {#refs}
+:::

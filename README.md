@@ -1,12 +1,9 @@
 # Scikit-longitudinal’s TpT splitter: growing decision trees along the
 time dimension of longitudinal data
 Mathias Valla, Simon Provost
-2026-04-23
 
-*A reproducible article presenting the Time-penalized Trees (TpT)
-splitter implemented in scikit-longitudinal, with one classification 
-example on the primary biliary cirrhosis longitudinal dataset and one
-regression example on the Produc US state production panel.*
+*How to fit and read a Time-penalized Tree in scikit-longitudinal, using
+public follow-up data on primary biliary cholangitis.*
 
 [![build and
 publish](https://github.com/MathiasValla/scikit-longitudinal-tpt/actions/workflows/build.yml/badge.svg)](https://github.com/MathiasValla/scikit-longitudinal-tpt/actions/workflows/build.yml)
@@ -25,44 +22,37 @@ time dimension of longitudinal data
 
 ### Abstract
 
-We present the Time-penalized Trees (TpT) splitter as implemented in
-scikit-longitudinal, a Python package for longitudinal machine learning.
-TpT extends recursive partitioning to repeated-measures covariates by
-penalizing candidate splits that rely on later observation waves. We
-describe the underlying split criterion, summarize the main user-facing
-parameters, and illustrate the implementation on two public longitudinal
-datasets: a subject-level classification problem based on the primary
-biliary cirrhosis follow-up data and a state-level regression problem
-based on the Produc panel. These examples show how the time penalty
-affects the selected split times and how the exported trees reveal both
-which predictors matter and when they matter.
+Two patients can have the same bilirubin level at their last visit, even
+though it has been rising in one patient and falling in the other. A tree
+fitted to the last visit sees the same bilirubin value for both.
+A Time-penalized Tree (TpT) chooses a measurement and a visit at each
+split. It favors earlier visits when the gains are close and can send
+shorter records to a separate leaf. We show how
+to fit and read such a tree in scikit-longitudinal. In public Mayo Clinic
+data, we use the first five years of follow-up to predict death or liver
+transplantation between years five and ten. The fitted tree asks for
+albumin and bilirubin at different visits and has two leaves for patients
+who lack the requested visit. Across ten repeats of five-fold
+cross-validation in this cohort, mean out-of-fold ROC AUC was 0.815 for
+TpT and 0.723 for a CART tree given only the last available visit.
 
 ### Repository layout
 
-- `paper.qmd`: Quarto source for the article.
+- `main.qmd`: Quarto source for the article.
+- `scripts/reproduce.sh`: creates the article environment and renders HTML and PDF.
 - `environment.yml`: frozen Python environment used for the examples.
 - `setup-env-ci.sh`: environment-setup hook for Computo's GitHub Actions workflow.
 - `setup-render-ci.sh`: render-step hook for Computo's GitHub Actions workflow.
-- `scripts/prepare_example_data.py`: downloads and preprocesses the open
-  datasets.
-- `analysis/tpt_examples.py`: helper functions used by the paper to run
-  the two TpT examples.
-- `data/processed/`: processed subject-level longitudinal datasets used
-  in the paper.
+- `scripts/build_tpt_backend.py`: rebuilds the pinned backend with the
+  article's TpT duration-routing correction.
+- `analysis/tpt_case_study.py`: prepares the landmark cohort, fits and
+  evaluates the models, and draws the figures.
+- `data/raw/pbcseq.csv`: public data snapshot used in the article.
 
-### Reproducibility 
+### Reproducibility
 
-1.  Create and activate the environment described in `environment.yml`.
-2.  Run `python scripts/prepare_example_data.py` from the activated
-    environment.
-3.  Ensure Quarto is available locally. The repository vendors the
-    Computo extension under `_extensions/`.
-4.  The root-level `setup-env-ci.sh` and `setup-render-ci.sh` scripts
-    are the two customization hooks used by Computo’s GitHub Actions
-    workflow.
-5.  Render the HTML article with
-    `quarto render paper.qmd --to computo-html`, or use
-    `bash scripts/render_local.sh computo-html`.
-6.  Render the PDF article with
-    `quarto render paper.qmd --to computo-pdf`, or use
-    `bash scripts/render_local.sh computo-pdf`.
+With Conda, Quarto and LaTeX available, run `bash scripts/reproduce.sh`.
+The script builds the article's backend and renders HTML and PDF against
+the included data snapshot. To use an already downloaded copy of the
+backend source archive, set `TPT_BACKEND_SDIST` to its path; the script
+checks the SHA-256 digest whether the archive is local or downloaded.
